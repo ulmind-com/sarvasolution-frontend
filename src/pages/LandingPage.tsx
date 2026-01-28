@@ -23,7 +23,9 @@ import {
   Users,
   Clock,
   Globe,
-  Leaf
+  Leaf,
+  MapPin,
+  Building2
 } from 'lucide-react';
 
 const fadeInUp = {
@@ -362,67 +364,135 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer id="contact" className="bg-card border-t border-border py-12">
+      {/* Contact Section */}
+      <section id="contact" className="py-16 bg-slate-900">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <img 
-                  src="https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png" 
-                  alt="Sarva Solution Vision Logo" 
-                  className="h-12 w-auto"
-                />
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+              Contact Us
+            </h2>
+            <p className="text-slate-300 text-lg max-w-2xl mx-auto">
+              Reach out to us at any of our offices or get in touch directly.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8 md:divide-x divide-slate-700">
+            {/* Head Office */}
+            <motion.div 
+              className="text-center md:text-left md:pr-8"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center">
+                  <MapPin className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">Head Office</h3>
               </div>
-              <p className="text-muted-foreground text-sm mb-2 font-semibold">
-                Sarva Solution Vision Pvt. Ltd.
+              <p className="text-slate-300 leading-relaxed">
+                Tarafdar Bhavan – 1st Floor, Atghora,<br />
+                Phool Tala, (Near Chinar Park),<br />
+                Rajarhat Road, Kolkata-700136.
               </p>
-              <p className="text-muted-foreground text-sm">
-                Cultivating health and empowering people through organic excellence.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Quick Links</h4>
-              <ul className="space-y-2">
-                <li><button onClick={() => scrollToSection('home')} className="text-muted-foreground hover:text-foreground transition-colors text-sm">Home</button></li>
-                <li><button onClick={() => scrollToSection('about-future')} className="text-muted-foreground hover:text-foreground transition-colors text-sm">About Us</button></li>
-                <li><button onClick={() => scrollToSection('segments')} className="text-muted-foreground hover:text-foreground transition-colors text-sm">Products</button></li>
-                <li><Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Member Login</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Legal</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Privacy Policy</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Terms of Service</a></li>
-                <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors text-sm">Refund Policy</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold text-foreground mb-4">Connect With Us</h4>
-              <div className="flex gap-3">
-                <a href="#" className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                  <Facebook className="h-5 w-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                  <Twitter className="h-5 w-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                  <Instagram className="h-5 w-5" />
-                </a>
-                <a href="#" className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors">
-                  <Linkedin className="h-5 w-5" />
-                </a>
+            </motion.div>
+
+            {/* Corporate Office */}
+            <motion.div 
+              className="text-center md:text-left md:px-8"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">Corporate Office</h3>
               </div>
+              <p className="text-slate-300 leading-relaxed">
+                P C Mitra Lane, Parapukur,<br />
+                (Near Tinkonia Bus Stand),<br />
+                Purba Bardhaman – 713101.
+              </p>
+            </motion.div>
+
+            {/* Contact Info */}
+            <motion.div 
+              className="text-center md:text-left md:pl-8"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                <div className="w-12 h-12 bg-teal-600 rounded-full flex items-center justify-center">
+                  <Headphones className="h-6 w-6 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-white">Get In Touch</h3>
+              </div>
+              <div className="space-y-2 text-slate-300">
+                <p>
+                  <a href="mailto:sarvasolution25@gmail.com" className="hover:text-teal-400 transition-colors">
+                    sarvasolution25@gmail.com
+                  </a>
+                </p>
+                <p>www.sarvasolutionvision.com</p>
+                <div className="pt-2 space-y-1">
+                  <p><a href="tel:+919832257991" className="hover:text-teal-400 transition-colors">+91 98322 57991</a></p>
+                  <p><a href="tel:+919564313062" className="hover:text-teal-400 transition-colors">+91 95643 13062</a></p>
+                  <p><a href="tel:+918629962669" className="hover:text-teal-400 transition-colors">+91 86299 62669</a></p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-slate-950 py-8">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-8 items-center mb-8">
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <img 
+                src="https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png" 
+                alt="Sarva Solution Vision Logo" 
+                className="h-12 w-auto"
+              />
+              <span className="text-white font-semibold hidden sm:block">Sarva Solution Vision</span>
+            </div>
+            
+            <div className="flex justify-center gap-4">
+              <a href="#" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
+                <Facebook className="h-5 w-5 text-white" />
+              </a>
+              <a href="#" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
+                <Twitter className="h-5 w-5 text-white" />
+              </a>
+              <a href="#" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
+                <Instagram className="h-5 w-5 text-white" />
+              </a>
+              <a href="#" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
+                <Linkedin className="h-5 w-5 text-white" />
+              </a>
+            </div>
+
+            <div className="flex justify-center md:justify-end gap-6">
+              <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">Privacy Policy</a>
+              <a href="#" className="text-slate-400 hover:text-white transition-colors text-sm">Terms of Service</a>
             </div>
           </div>
           
-          <div className="border-t border-border pt-8 text-center">
-            <p className="text-muted-foreground text-sm">
-              © 2026 Sarva Solution Vision Private Limited. All rights reserved.
+          <div className="border-t border-slate-800 pt-6 text-center">
+            <p className="text-slate-400 text-sm">
+              © 2026 Sarva Solution Vision Pvt. Ltd. All rights reserved.
             </p>
           </div>
         </div>
