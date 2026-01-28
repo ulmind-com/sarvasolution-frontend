@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
-import { 
+import WhatsAppWidget from '@/components/WhatsAppWidget';
+import {
   Sprout, 
   Fish, 
   Smile, 
@@ -426,6 +427,9 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* WhatsApp Floating Widget */}
+      <WhatsAppWidget />
     </div>
   );
 };
