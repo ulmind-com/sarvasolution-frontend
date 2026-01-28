@@ -12,28 +12,60 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Home,
   Users,
   ShoppingBag,
   Wallet,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   User,
   Menu,
-  Network
+  Network,
+  IndianRupee,
+  FileText,
+  Settings,
+  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { incomeTypes } from '@/data/mockData';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const menuItems = [
+interface MenuItem {
+  path?: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children?: { path: string; label: string }[];
+}
+
+const menuItems: MenuItem[] = [
   { path: '/dashboard', label: 'Overview', icon: Home },
   { path: '/dashboard/genealogy', label: 'Genealogy', icon: Network },
   { path: '/dashboard/store', label: 'Product Store', icon: ShoppingBag },
   { path: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
+  { 
+    label: 'My Incomes', 
+    icon: IndianRupee,
+    children: incomeTypes.map(t => ({ path: `/dashboard/incomes/${t.slug}`, label: t.name }))
+  },
+  { path: '/dashboard/capping', label: 'Capping Summary', icon: FileText },
+  { 
+    label: 'My Profile', 
+    icon: User,
+    children: [
+      { path: '/dashboard/profile', label: 'Update Profile' },
+      { path: '/dashboard/change-password', label: 'Change Password' }
+    ]
+  },
 ];
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
@@ -85,13 +117,59 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
         
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
+            if (item.children) {
+              const isChildActive = item.children.some(child => location.pathname === child.path);
+              return (
+                <Collapsible key={item.label} defaultOpen={isChildActive}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      className={cn(
+                        "flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-colors",
+                        isChildActive
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span className="font-medium">{item.label}</span>}
+                      </div>
+                      {!collapsed && <ChevronDown className="h-4 w-4" />}
+                    </button>
+                  </CollapsibleTrigger>
+                  {!collapsed && (
+                    <CollapsibleContent className="pl-8 mt-1 space-y-1">
+                      {item.children.map((child) => {
+                        const isActive = location.pathname === child.path;
+                        return (
+                          <Link
+                            key={child.path}
+                            to={child.path}
+                            onClick={() => setMobileOpen(false)}
+                            className={cn(
+                              "block px-3 py-2 rounded-lg text-sm transition-colors",
+                              isActive
+                                ? "bg-primary text-primary-foreground"
+                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            )}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </CollapsibleContent>
+                  )}
+                </Collapsible>
+              );
+            }
+
             const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
-                to={item.path}
+                to={item.path!}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
