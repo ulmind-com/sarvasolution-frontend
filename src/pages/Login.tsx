@@ -32,7 +32,9 @@ const Login = () => {
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary-foreground">ULMind</h1>
+          <Link to="/" className="inline-block">
+            <h1 className="text-3xl font-bold text-primary-foreground">ULMind</h1>
+          </Link>
           <p className="text-primary-foreground/80 mt-2">Network Marketing Platform</p>
         </div>
         
