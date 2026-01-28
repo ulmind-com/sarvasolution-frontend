@@ -367,3 +367,70 @@ export const transactions: Transaction[] = [
     description: 'Direct referral commission'
   }
 ];
+
+// Capping Data
+export interface CappingRecord {
+  id: string;
+  date: string;
+  allowedLimit: number;
+  totalEarned: number;
+  flushedIncome: number;
+  description: string;
+}
+
+export const cappingData: CappingRecord[] = [
+  { id: 'C001', date: '2024-01-28', allowedLimit: 5000, totalEarned: 1200, flushedIncome: 0, description: 'Daily Binary Cap' },
+  { id: 'C002', date: '2024-01-27', allowedLimit: 5000, totalEarned: 4800, flushedIncome: 0, description: 'Daily Binary Cap' },
+  { id: 'C003', date: '2024-01-26', allowedLimit: 5000, totalEarned: 5000, flushedIncome: 350, description: 'Daily Binary Cap' },
+  { id: 'C004', date: '2024-01-25', allowedLimit: 5000, totalEarned: 3200, flushedIncome: 0, description: 'Daily Binary Cap' },
+  { id: 'C005', date: '2024-01-24', allowedLimit: 5000, totalEarned: 5000, flushedIncome: 1200, description: 'Daily Binary Cap' },
+  { id: 'C006', date: '2024-01-23', allowedLimit: 5000, totalEarned: 2100, flushedIncome: 0, description: 'Daily Binary Cap' },
+  { id: 'C007', date: '2024-01-22', allowedLimit: 5000, totalEarned: 4500, flushedIncome: 0, description: 'Daily Binary Cap' },
+  { id: 'C008', date: '2024-01-21', allowedLimit: 5000, totalEarned: 5000, flushedIncome: 800, description: 'Daily Binary Cap' },
+];
+
+// Income Types for dropdown
+export const incomeTypes = [
+  { slug: 'retail-profits', name: 'Retail Profits' },
+  { slug: 'level-bonus', name: 'Level Bonus' },
+  { slug: 'spill-over-bonus', name: 'Spill Over Bonus' },
+  { slug: 'self-repurchase-bonus', name: 'Self Repurchase Bonus' },
+  { slug: 'beginner-matching-bonus', name: 'Beginner Matching Bonus' },
+  { slug: 'start-up-bonus', name: 'Start Up Bonus' },
+  { slug: 'team-mentorship-bonus', name: 'Team Mentorship Bonus' },
+  { slug: 'travel-fund', name: 'Travel Fund' },
+  { slug: 'car-fund', name: 'Car Fund' },
+  { slug: 'house-fund', name: 'House Fund' },
+  { slug: 'royalty-fund', name: 'Royalty Fund' },
+  { slug: 'franchise-bonus', name: 'Franchise Bonus' },
+];
+
+// Income Data
+export interface IncomeRecord {
+  id: string;
+  type: string;
+  date: string;
+  fromUser: string;
+  fromUserId: string;
+  level: number;
+  amount: number;
+  tds: number;
+  netPayable: number;
+}
+
+export const incomeData: IncomeRecord[] = [
+  { id: 'I001', type: 'retail-profits', date: '2024-01-28', fromUser: 'Amit Kumar', fromUserId: 'U004', level: 1, amount: 500, tds: 25, netPayable: 475 },
+  { id: 'I002', type: 'retail-profits', date: '2024-01-27', fromUser: 'Sneha Reddy', fromUserId: 'U005', level: 1, amount: 350, tds: 18, netPayable: 332 },
+  { id: 'I003', type: 'level-bonus', date: '2024-01-28', fromUser: 'Vikram Singh', fromUserId: 'U006', level: 2, amount: 1200, tds: 60, netPayable: 1140 },
+  { id: 'I004', type: 'level-bonus', date: '2024-01-26', fromUser: 'Neha Gupta', fromUserId: 'U007', level: 2, amount: 800, tds: 40, netPayable: 760 },
+  { id: 'I005', type: 'level-bonus', date: '2024-01-25', fromUser: 'Rajesh Mehta', fromUserId: 'U008', level: 3, amount: 450, tds: 23, netPayable: 427 },
+  { id: 'I006', type: 'spill-over-bonus', date: '2024-01-27', fromUser: 'Kavita Nair', fromUserId: 'U009', level: 3, amount: 600, tds: 30, netPayable: 570 },
+  { id: 'I007', type: 'self-repurchase-bonus', date: '2024-01-28', fromUser: 'Self', fromUserId: 'U002', level: 0, amount: 250, tds: 13, netPayable: 237 },
+  { id: 'I008', type: 'beginner-matching-bonus', date: '2024-01-26', fromUser: 'Suresh Iyer', fromUserId: 'U010', level: 4, amount: 300, tds: 15, netPayable: 285 },
+  { id: 'I009', type: 'start-up-bonus', date: '2024-01-24', fromUser: 'Deepa Joshi', fromUserId: 'U011', level: 4, amount: 1000, tds: 50, netPayable: 950 },
+  { id: 'I010', type: 'team-mentorship-bonus', date: '2024-01-23', fromUser: 'Arun Pillai', fromUserId: 'U012', level: 5, amount: 1500, tds: 75, netPayable: 1425 },
+  { id: 'I011', type: 'travel-fund', date: '2024-01-20', fromUser: 'System', fromUserId: 'SYS', level: 0, amount: 5000, tds: 250, netPayable: 4750 },
+  { id: 'I012', type: 'car-fund', date: '2024-01-15', fromUser: 'System', fromUserId: 'SYS', level: 0, amount: 25000, tds: 1250, netPayable: 23750 },
+  { id: 'I013', type: 'royalty-fund', date: '2024-01-18', fromUser: 'System', fromUserId: 'SYS', level: 0, amount: 3000, tds: 150, netPayable: 2850 },
+  { id: 'I014', type: 'franchise-bonus', date: '2024-01-22', fromUser: 'Meera Das', fromUserId: 'U013', level: 5, amount: 2000, tds: 100, netPayable: 1900 },
+];

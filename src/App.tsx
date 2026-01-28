@@ -16,6 +16,10 @@ import Overview from "./pages/dashboard/Overview";
 import Genealogy from "./pages/dashboard/Genealogy";
 import Store from "./pages/dashboard/Store";
 import Wallet from "./pages/dashboard/Wallet";
+import UpdateProfile from "./pages/dashboard/UpdateProfile";
+import ChangePassword from "./pages/dashboard/ChangePassword";
+import CappingReport from "./pages/dashboard/CappingReport";
+import IncomeReport from "./pages/dashboard/IncomeReport";
 
 // Admin
 import AdminLayout from "./components/layout/AdminLayout";
@@ -72,6 +76,34 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <Wallet />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/profile" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <UpdateProfile />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/change-password" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <ChangePassword />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/capping" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <CappingReport />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/incomes/:type" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <IncomeReport />
           </DashboardLayout>
         </ProtectedRoute>
       } />
