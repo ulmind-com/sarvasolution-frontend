@@ -129,7 +129,7 @@ const LandingPage = () => {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="font-semibold px-8 py-6 text-lg border-2 border-white text-white bg-white/10 hover:bg-white hover:text-green-900"
+                  className="font-semibold px-8 py-6 text-lg bg-background/90 text-foreground border border-border hover:bg-background"
                 >
                   Join Our Vision
                 </Button>
