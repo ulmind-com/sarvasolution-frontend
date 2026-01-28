@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Phone, Send, X, User } from 'lucide-react';
+import { Phone, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ const WhatsAppWidget = () => {
   const [message, setMessage] = useState('');
   const { toast } = useToast();
 
+  const logoUrl = 'https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png';
   const phoneNumber = '919832775700';
   const displayNumber = '+91 98327 75700';
 
@@ -73,8 +74,12 @@ const WhatsAppWidget = () => {
             >
               {/* Header */}
               <div className="bg-[#075E54] p-4 flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                  <User className="w-6 h-6 text-gray-600" />
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={logoUrl} 
+                    alt="Sarva Support" 
+                    className="w-8 h-8 object-contain"
+                  />
                 </div>
                 <div className="flex-1">
                   <h4 className="text-white font-semibold text-sm">Sarva Support Team</h4>
@@ -159,7 +164,12 @@ const WhatsAppWidget = () => {
         {isOpen ? (
           <X className="w-7 h-7 text-white" />
         ) : (
-          <MessageCircle className="w-7 h-7 text-white" />
+          <svg 
+            viewBox="0 0 24 24" 
+            className="w-7 h-7 text-white fill-current"
+          >
+            <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.36 5.07L2 22l4.93-1.36C8.42 21.5 10.15 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm.03 17.5c-1.63 0-3.15-.45-4.45-1.22l-.32-.18-2.93.81.81-2.93-.2-.32A7.44 7.44 0 014.5 12c0-4.14 3.36-7.5 7.5-7.5S19.5 7.86 19.5 12s-3.36 7.5-7.47 7.5zm4.14-5.63c-.22-.11-1.32-.65-1.52-.73-.2-.07-.35-.11-.5.11-.15.22-.58.73-.71.88-.13.15-.26.17-.49.06-.22-.11-.94-.35-1.79-1.11-.66-.59-1.11-1.32-1.24-1.54-.13-.22-.01-.34.1-.45.1-.1.22-.26.33-.39.11-.13.15-.22.22-.37.07-.15.04-.28-.02-.39-.06-.11-.5-1.21-.69-1.66-.18-.43-.37-.37-.5-.38-.13-.01-.28-.01-.43-.01-.15 0-.39.06-.6.28-.2.22-.78.76-.78 1.86s.8 2.16.91 2.31c.11.15 1.57 2.4 3.81 3.36.53.23.95.37 1.27.47.54.17 1.02.15 1.41.09.43-.06 1.32-.54 1.51-1.06.19-.52.19-.97.13-1.06-.06-.09-.21-.15-.43-.26z"/>
+          </svg>
         )}
       </motion.button>
     </div>
