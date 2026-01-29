@@ -95,9 +95,12 @@ const Store = () => {
           <Card key={product.id} className="border-border overflow-hidden group hover:shadow-lg transition-shadow">
             <div className="aspect-square relative overflow-hidden bg-muted">
               <img 
-                src={product.image} 
+                src={typeof product.image === 'string' ? product.image : (product.image as { url?: string })?.url || '/placeholder.svg'} 
                 alt={product.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
               />
               <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
                 {product.pv} PV
@@ -148,9 +151,12 @@ const Store = () => {
           {selectedProduct && (
             <div className="flex gap-4 py-4">
               <img 
-                src={selectedProduct.image} 
+                src={typeof selectedProduct.image === 'string' ? selectedProduct.image : (selectedProduct.image as { url?: string })?.url || '/placeholder.svg'} 
                 alt={selectedProduct.name}
                 className="w-20 h-20 object-cover rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
               />
               <div className="flex-1">
                 <h4 className="font-semibold text-foreground">{selectedProduct.name}</h4>
