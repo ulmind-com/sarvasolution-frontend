@@ -39,6 +39,7 @@ export interface ApiUser {
   sponsorName?: string;
   panCardNumber: string;
   rank: string;
+  role: 'user' | 'admin';
   leftPV: number;
   rightPV: number;
   wallet: UserWallet;
@@ -69,8 +70,10 @@ interface RegisterResponse {
 
 interface LoginResponse {
   success: boolean;
-  token: string;
-  user: ApiUser;
+  data: {
+    token: string;
+    user: ApiUser;
+  };
   message?: string;
 }
 
@@ -123,7 +126,7 @@ export const useAuthStore = create<AuthState>()(
             password,
           });
           
-          const { token, user } = response.data;
+          const { token, user } = response.data.data;
           
           set({
             user,
@@ -132,7 +135,9 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
           
-          return { success: true, redirect: '/dashboard/profile' };
+          // Role-based redirect
+          const redirect = user.role === 'admin' ? '/admin/users' : '/dashboard/profile';
+          return { success: true, redirect };
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Invalid Member ID or Password';
           set({

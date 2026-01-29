@@ -40,10 +40,10 @@ const Login = () => {
     try {
       const result = await login(memberId.trim(), password);
       
-      if (result.success) {
+      if (result.success && result.redirect) {
         toast.success('Login successful!');
-        // Force redirect immediately after success
-        navigate('/dashboard/profile', { replace: true });
+        // Role-based redirect from auth store
+        navigate(result.redirect, { replace: true });
       }
     } catch (error: any) {
       toast.error(error.message || 'Login failed');
