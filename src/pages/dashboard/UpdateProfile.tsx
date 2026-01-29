@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useRef } from 'react';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -10,27 +10,191 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { CalendarIcon, Upload, Loader2 } from 'lucide-react';
+import { CalendarIcon, Upload, Loader2, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const UpdateProfile = () => {
-  const { currentUser } = useAuth();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [dob, setDob] = useState<Date>();
-  const [nomineeDob, setNomineeDob] = useState<Date>();
+  const { user, bankDetails, isLoading, isProfileLoading, fetchProfile, updateProfile, error, clearError } = useAuthStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    panCardNumber: '',
+    dateOfBirth: '',
+    // Address
+    street: '',
+    city: '',
+    state: '',
+    pinCode: '',
+    // Banking
+    accountNumber: '',
+    confirmAccountNumber: '',
+    ifscCode: '',
+    bankName: '',
+    branchName: '',
+    // Nominee
+    nomineeName: '',
+    nomineeRelation: '',
+    nomineeDob: '',
+  });
+  
+  const [dob, setDob] = useState<Date | undefined>();
+  const [nomineeDob, setNomineeDob] = useState<Date | undefined>();
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Fetch profile on mount
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  // Pre-fill form when user data is loaded
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        panCardNumber: user.panCardNumber || '',
+        // Address
+        street: user.address?.street || '',
+        city: user.address?.city || '',
+        state: user.address?.state || '',
+        pinCode: user.address?.pinCode || '',
+        // Nominee
+        nomineeName: user.nominee?.name || '',
+        nomineeRelation: user.nominee?.relation || '',
+      }));
+      
+      if (user.dateOfBirth) {
+        setDob(new Date(user.dateOfBirth));
+      }
+      
+      if (user.nominee?.dateOfBirth) {
+        setNomineeDob(new Date(user.nominee.dateOfBirth));
+      }
+    }
+  }, [user]);
+
+  // Pre-fill bank details
+  useEffect(() => {
+    if (bankDetails) {
+      setFormData(prev => ({
+        ...prev,
+        accountNumber: bankDetails.accountNumber || '',
+        confirmAccountNumber: bankDetails.accountNumber || '',
+        ifscCode: bankDetails.ifscCode || '',
+        bankName: bankDetails.bankName || '',
+        branchName: bankDetails.branchName || '',
+      }));
+    }
+  }, [bankDetails]);
+
+  // Show error toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (2MB max)
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image size must be less than 2MB');
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select a valid image file');
+        return;
+      }
+      
+      setProfileImage(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
   const handleUpdate = async () => {
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    toast({
-      title: "Profile Updated Successfully",
-      description: "Your profile changes have been saved.",
-    });
+    // Validate account numbers match
+    if (formData.accountNumber && formData.accountNumber !== formData.confirmAccountNumber) {
+      toast.error('Account numbers do not match');
+      return;
+    }
+
+    const formDataToSend = new FormData();
+    
+    // Append simple text fields
+    formDataToSend.append('fullName', formData.fullName);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('phone', formData.phone);
+    formDataToSend.append('panCardNumber', formData.panCardNumber);
+    
+    if (dob) {
+      formDataToSend.append('dateOfBirth', dob.toISOString());
+    }
+    
+    // Append profile picture if selected
+    if (profileImage) {
+      formDataToSend.append('profilePicture', profileImage);
+    }
+    
+    // Append address as JSON string
+    const addressObj = {
+      street: formData.street,
+      city: formData.city,
+      state: formData.state,
+      pinCode: formData.pinCode,
+    };
+    formDataToSend.append('address', JSON.stringify(addressObj));
+    
+    // Append bank details as JSON string
+    const bankObj = {
+      accountNumber: formData.accountNumber,
+      ifscCode: formData.ifscCode,
+      bankName: formData.bankName,
+      branchName: formData.branchName,
+    };
+    formDataToSend.append('bankDetails', JSON.stringify(bankObj));
+    
+    // Append nominee details as JSON string
+    const nomineeObj = {
+      name: formData.nomineeName,
+      relation: formData.nomineeRelation,
+      dateOfBirth: nomineeDob?.toISOString() || '',
+    };
+    formDataToSend.append('nominee', JSON.stringify(nomineeObj));
+
+    const result = await updateProfile(formDataToSend);
+    
+    if (result.success) {
+      toast.success('Profile Updated Successfully');
+      setProfileImage(null);
+      setImagePreview(null);
+    }
   };
+
+  // Get display image (preview or existing)
+  const displayImage = imagePreview || user?.profilePicture || null;
 
   return (
     <div className="space-y-6">
@@ -54,87 +218,139 @@ const UpdateProfile = () => {
             </TabsList>
 
             <TabsContent value="personal" className="space-y-6">
+              {/* Profile Photo Section */}
               <div className="flex items-center gap-6 mb-6">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={currentUser?.avatar} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
-                    {currentUser?.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    {displayImage ? (
+                      <AvatarImage src={displayImage} alt="Profile" />
+                    ) : null}
+                    <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                      {isProfileLoading ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        user?.fullName?.charAt(0) || 'U'
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                  {imagePreview && (
+                    <div className="absolute -top-1 -right-1 h-4 w-4 bg-primary rounded-full flex items-center justify-center">
+                      <Camera className="h-2.5 w-2.5 text-primary-foreground" />
+                    </div>
+                  )}
+                </div>
                 <div>
                   <Label htmlFor="photo" className="cursor-pointer">
                     <div className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors">
                       <Upload className="h-4 w-4" />
-                      Upload Photo
+                      {imagePreview ? 'Change Photo' : 'Upload Photo'}
                     </div>
                   </Label>
-                  <input type="file" id="photo" className="hidden" accept="image/*" />
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    id="photo" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                  />
                   <p className="text-xs text-muted-foreground mt-1">JPG, PNG up to 2MB</p>
+                  {imagePreview && (
+                    <p className="text-xs text-primary mt-1">New photo selected - click Update to save</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Sponsor ID</Label>
-                  <Input 
-                    value={currentUser?.sponsorId || 'N/A'} 
-                    disabled 
-                    className="bg-muted"
-                  />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      value={user?.sponsorId || 'N/A'} 
+                      disabled 
+                      className="bg-muted"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Sponsor Name</Label>
-                  <Input 
-                    value="Admin Master" 
-                    disabled 
-                    className="bg-muted"
-                  />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      value={user?.sponsorName || 'N/A'} 
+                      disabled 
+                      className="bg-muted"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Member ID</Label>
-                  <Input 
-                    value={currentUser?.id} 
-                    disabled 
-                    className="bg-muted"
-                  />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      value={user?.memberId || 'N/A'} 
+                      disabled 
+                      className="bg-muted"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Full Name</Label>
-                  <Input defaultValue={currentUser?.name} />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Joining Date</Label>
-                  <Input 
-                    value={currentUser?.joinDate ? format(new Date(currentUser.joinDate), 'PPP') : ''} 
-                    disabled 
-                    className="bg-muted"
-                  />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      value={user?.createdAt ? format(new Date(user.createdAt), 'PPP') : ''} 
+                      disabled 
+                      className="bg-muted"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Date of Birth</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !dob && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dob ? format(dob, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dob}
-                        onSelect={setDob}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !dob && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dob ? format(dob, "PPP") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={dob}
+                          onSelect={setDob}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -143,41 +359,109 @@ const UpdateProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Mobile Number</Label>
-                  <Input type="tel" placeholder="+91 XXXXX XXXXX" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="phone"
+                      type="tel" 
+                      placeholder="+91 XXXXX XXXXX"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Email Address</Label>
-                  <Input type="email" defaultValue={currentUser?.email} />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label>Address</Label>
-                  <Textarea placeholder="Enter your complete address" rows={3} />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-20 w-full" />
+                  ) : (
+                    <Textarea 
+                      name="street"
+                      placeholder="Enter your complete address" 
+                      rows={3}
+                      value={formData.street}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>City</Label>
-                  <Input placeholder="Enter city" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="city"
+                      placeholder="Enter city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>State</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select state" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="maharashtra">Maharashtra</SelectItem>
-                      <SelectItem value="delhi">Delhi</SelectItem>
-                      <SelectItem value="karnataka">Karnataka</SelectItem>
-                      <SelectItem value="tamil-nadu">Tamil Nadu</SelectItem>
-                      <SelectItem value="gujarat">Gujarat</SelectItem>
-                      <SelectItem value="rajasthan">Rajasthan</SelectItem>
-                      <SelectItem value="west-bengal">West Bengal</SelectItem>
-                      <SelectItem value="uttar-pradesh">Uttar Pradesh</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select 
+                      value={formData.state} 
+                      onValueChange={(value) => handleSelectChange('state', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="maharashtra">Maharashtra</SelectItem>
+                        <SelectItem value="delhi">Delhi</SelectItem>
+                        <SelectItem value="karnataka">Karnataka</SelectItem>
+                        <SelectItem value="tamil-nadu">Tamil Nadu</SelectItem>
+                        <SelectItem value="gujarat">Gujarat</SelectItem>
+                        <SelectItem value="rajasthan">Rajasthan</SelectItem>
+                        <SelectItem value="west-bengal">West Bengal</SelectItem>
+                        <SelectItem value="uttar-pradesh">Uttar Pradesh</SelectItem>
+                        <SelectItem value="andhra-pradesh">Andhra Pradesh</SelectItem>
+                        <SelectItem value="telangana">Telangana</SelectItem>
+                        <SelectItem value="kerala">Kerala</SelectItem>
+                        <SelectItem value="punjab">Punjab</SelectItem>
+                        <SelectItem value="haryana">Haryana</SelectItem>
+                        <SelectItem value="bihar">Bihar</SelectItem>
+                        <SelectItem value="odisha">Odisha</SelectItem>
+                        <SelectItem value="madhya-pradesh">Madhya Pradesh</SelectItem>
+                        <SelectItem value="chhattisgarh">Chhattisgarh</SelectItem>
+                        <SelectItem value="jharkhand">Jharkhand</SelectItem>
+                        <SelectItem value="assam">Assam</SelectItem>
+                        <SelectItem value="goa">Goa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Pin Code</Label>
-                  <Input type="text" placeholder="XXXXXX" maxLength={6} />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="pinCode"
+                      type="text" 
+                      placeholder="XXXXXX" 
+                      maxLength={6}
+                      value={formData.pinCode}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -186,27 +470,88 @@ const UpdateProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Account Number</Label>
-                  <Input type="text" placeholder="Enter account number" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="accountNumber"
+                      type="text" 
+                      placeholder="Enter account number"
+                      value={formData.accountNumber}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Confirm Account Number</Label>
-                  <Input type="text" placeholder="Re-enter account number" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="confirmAccountNumber"
+                      type="text" 
+                      placeholder="Re-enter account number"
+                      value={formData.confirmAccountNumber}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>IFSC Code</Label>
-                  <Input type="text" placeholder="XXXX0XXXXXX" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="ifscCode"
+                      type="text" 
+                      placeholder="XXXX0XXXXXX"
+                      value={formData.ifscCode}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Bank Name</Label>
-                  <Input type="text" placeholder="Enter bank name" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="bankName"
+                      type="text" 
+                      placeholder="Enter bank name"
+                      value={formData.bankName}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Branch Name</Label>
-                  <Input type="text" placeholder="Enter branch name" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="branchName"
+                      type="text" 
+                      placeholder="Enter branch name"
+                      value={formData.branchName}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>PAN Card Number</Label>
-                  <Input type="text" placeholder="XXXXX0000X" maxLength={10} />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="panCardNumber"
+                      type="text" 
+                      placeholder="XXXXX0000X" 
+                      maxLength={10}
+                      value={formData.panCardNumber}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -215,51 +560,72 @@ const UpdateProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nominee Name</Label>
-                  <Input type="text" placeholder="Enter nominee full name" />
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="nomineeName"
+                      type="text" 
+                      placeholder="Enter nominee full name"
+                      value={formData.nomineeName}
+                      onChange={handleInputChange}
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Relation</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select relation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="spouse">Spouse</SelectItem>
-                      <SelectItem value="father">Father</SelectItem>
-                      <SelectItem value="mother">Mother</SelectItem>
-                      <SelectItem value="son">Son</SelectItem>
-                      <SelectItem value="daughter">Daughter</SelectItem>
-                      <SelectItem value="brother">Brother</SelectItem>
-                      <SelectItem value="sister">Sister</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Select 
+                      value={formData.nomineeRelation}
+                      onValueChange={(value) => handleSelectChange('nomineeRelation', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select relation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="spouse">Spouse</SelectItem>
+                        <SelectItem value="father">Father</SelectItem>
+                        <SelectItem value="mother">Mother</SelectItem>
+                        <SelectItem value="son">Son</SelectItem>
+                        <SelectItem value="daughter">Daughter</SelectItem>
+                        <SelectItem value="brother">Brother</SelectItem>
+                        <SelectItem value="sister">Sister</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Date of Birth</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !nomineeDob && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {nomineeDob ? format(nomineeDob, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={nomineeDob}
-                        onSelect={setNomineeDob}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !nomineeDob && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {nomineeDob ? format(nomineeDob, "PPP") : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={nomineeDob}
+                          onSelect={setNomineeDob}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -297,7 +663,7 @@ const UpdateProfile = () => {
             </TabsContent>
 
             <div className="mt-8 pt-6 border-t border-border">
-              <Button onClick={handleUpdate} disabled={isLoading} className="w-full md:w-auto">
+              <Button onClick={handleUpdate} disabled={isLoading || isProfileLoading} className="w-full md:w-auto">
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
