@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +24,7 @@ import {
   Award,
   AlertCircle,
   ZoomIn,
+  Pencil,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { format } from 'date-fns';
@@ -32,6 +33,7 @@ import {
   DialogContent,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import EditUserModal from '@/components/admin/EditUserModal';
 
 interface UserDetailData {
   _id: string;
@@ -87,27 +89,32 @@ const UserDetail = () => {
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const fetchUserDetail = useCallback(async () => {
+    if (!memberId) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await api.get(`/api/v1/admin/users/${memberId}`);
+      setUser(response.data.data.user);
+      setBankAccount(response.data.data.bankAccount || null);
+    } catch (err: any) {
+      console.error('Error fetching user details:', err);
+      setError(err.response?.data?.message || 'Failed to fetch user details');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [memberId]);
 
   useEffect(() => {
-    const fetchUserDetail = async () => {
-      if (!memberId) return;
-      
-      try {
-        setIsLoading(true);
-        setError(null);
-        const response = await api.get(`/api/v1/admin/users/${memberId}`);
-        setUser(response.data.data.user);
-        setBankAccount(response.data.data.bankAccount || null);
-      } catch (err: any) {
-        console.error('Error fetching user details:', err);
-        setError(err.response?.data?.message || 'Failed to fetch user details');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchUserDetail();
-  }, [memberId]);
+  }, [fetchUserDetail]);
+
+  const handleEditSuccess = () => {
+    fetchUserDetail(); // Re-fetch user data after successful edit
+  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -193,13 +200,42 @@ const UserDetail = () => {
                 </Badge>
               </div>
             </div>
-            <Badge className="text-sm px-4 py-2">
-              <Crown className="mr-2 h-4 w-4" />
-              {user.rank || 'Member'}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditModalOpen(true)}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Profile
+              </Button>
+              <Badge className="text-sm px-4 py-2">
+                <Crown className="mr-2 h-4 w-4" />
+                {user.rank || 'Member'}
+              </Badge>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit User Modal */}
+      {user && (
+        <EditUserModal
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+          memberId={memberId || ''}
+          userData={{
+            fullName: user.fullName,
+            email: user.email,
+            phone: user.phone,
+            panCardNumber: user.kyc?.panCardNumber || '',
+            rank: user.rank,
+            status: user.status as 'active' | 'inactive' | 'blocked',
+            joiningPackage: user.joiningPackage,
+          }}
+          onSuccess={handleEditSuccess}
+        />
+      )}
 
       {/* Tabs Section */}
       <Tabs defaultValue="overview" className="space-y-4">
