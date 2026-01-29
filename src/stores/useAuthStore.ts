@@ -132,7 +132,7 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
           
-          return { success: true, redirect: '/dashboard' };
+          return { success: true, redirect: '/dashboard/profile' };
         } catch (error: any) {
           const errorMessage = error.response?.data?.message || 'Invalid Member ID or Password';
           set({
