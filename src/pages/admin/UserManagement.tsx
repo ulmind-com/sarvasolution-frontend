@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -11,7 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, Users, AlertCircle } from 'lucide-react';
+import { Search, Users, AlertCircle, Eye } from 'lucide-react';
 import api from '@/lib/api';
 import { format } from 'date-fns';
 
@@ -33,6 +35,7 @@ interface UsersResponse {
 }
 
 const UserManagement = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -126,6 +129,7 @@ const UserManagement = () => {
                   <TableHead className="text-muted-foreground">Rank</TableHead>
                   <TableHead className="text-muted-foreground">Status</TableHead>
                   <TableHead className="text-muted-foreground">Joining Date</TableHead>
+                  <TableHead className="text-muted-foreground">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,11 +144,12 @@ const UserManagement = () => {
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                     </TableRow>
                   ))
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       {searchQuery ? 'No users found matching your search' : 'No users found'}
                     </TableCell>
                   </TableRow>
@@ -181,6 +186,16 @@ const UserManagement = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatDate(user.joiningDate)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => navigate(`/admin/users/${user.memberId}`)}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

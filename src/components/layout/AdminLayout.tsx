@@ -19,7 +19,8 @@ import {
   ChevronRight,
   LogOut,
   Menu,
-  Shield
+  Shield,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,7 @@ const menuItems = [
   { path: '/admin', label: 'Dashboard', icon: Home },
   { path: '/admin/users', label: 'User Management', icon: Users },
   { path: '/admin/payouts', label: 'Payout Requests', icon: CreditCard },
+  { path: '/admin/profile', label: 'My Profile', icon: UserCog },
 ];
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
