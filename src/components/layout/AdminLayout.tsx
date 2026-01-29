@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -36,7 +36,7 @@ const menuItems = [
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -105,17 +105,17 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </nav>
         
         {/* Admin Info */}
-        {!collapsed && currentUser && (
+        {!collapsed && user && (
           <div className="p-4 border-t border-secondary-foreground/10">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={currentUser.avatar} />
+                <AvatarImage src={user.profilePicture} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {currentUser.name.charAt(0)}
+                  {user.fullName.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-secondary-foreground truncate">{currentUser.name}</p>
+                <p className="font-medium text-secondary-foreground truncate">{user.fullName}</p>
                 <p className="text-xs text-secondary-foreground/60">Administrator</p>
               </div>
             </div>
@@ -142,9 +142,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={currentUser?.avatar} />
+                  <AvatarImage src={user?.profilePicture} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    {currentUser?.name.charAt(0)}
+                    {user?.fullName.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -152,8 +152,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <DropdownMenuContent className="w-56" align="end">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{currentUser?.name}</p>
-                  <p className="text-xs text-muted-foreground">{currentUser?.email}</p>
+                  <p className="text-sm font-medium">{user?.fullName}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
