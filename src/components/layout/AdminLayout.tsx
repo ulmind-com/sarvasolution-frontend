@@ -109,7 +109,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           <div className="p-4 border-t border-secondary-foreground/10">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user.profilePicture} />
+                <AvatarImage src={user.profilePicture?.url} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {user.fullName.charAt(0)}
                 </AvatarFallback>
@@ -142,7 +142,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={user?.profilePicture} />
+                  <AvatarImage src={user?.profilePicture?.url} />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {user?.fullName.charAt(0)}
                   </AvatarFallback>
