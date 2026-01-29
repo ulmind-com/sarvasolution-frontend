@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,21 +9,39 @@ import { Loader2, TrendingUp, Users, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [memberId, setMemberId] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, error, clearError, user } = useAuthStore();
   const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  // Show error toast when error changes
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const result = await login(email, password);
+    if (!memberId.trim() || !password.trim()) {
+      toast.error('Please enter Member ID and Password');
+      return;
+    }
+    
+    const result = await login(memberId.trim(), password);
     
     if (result.success) {
       toast.success('Login successful!');
-      navigate(result.redirect);
-    } else {
-      toast.error('Invalid credentials. Try admin@ulmind.com or user@ulmind.com');
+      navigate(result.redirect || '/dashboard');
     }
   };
 
@@ -33,7 +51,11 @@ const Login = () => {
       <div className="hidden lg:flex lg:w-1/2 bg-primary p-12 flex-col justify-between">
         <div>
           <Link to="/" className="inline-block">
-            <h1 className="text-3xl font-bold text-primary-foreground">ULMind</h1>
+            <img 
+              src="https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png" 
+              alt="Sarva Solution Vision" 
+              className="h-12 w-auto"
+            />
           </Link>
           <p className="text-primary-foreground/80 mt-2">Network Marketing Platform</p>
         </div>
@@ -71,7 +93,7 @@ const Login = () => {
         </div>
         
         <p className="text-primary-foreground/60 text-sm">
-          © 2024 ULMind. All rights reserved.
+          © 2026 Sarva Solution Vision Pvt Ltd. All rights reserved.
         </p>
       </div>
       
@@ -81,21 +103,22 @@ const Login = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-foreground">Welcome back</CardTitle>
             <CardDescription className="text-muted-foreground">
-              Enter your credentials to access your dashboard
+              Enter your Member ID and password to access your dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
+                <Label htmlFor="memberId" className="text-foreground">Member ID</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="memberId"
+                  type="text"
+                  placeholder="e.g., SVS12345"
+                  value={memberId}
+                  onChange={(e) => setMemberId(e.target.value.toUpperCase())}
                   required
                   className="bg-card border-input"
+                  disabled={isLoading}
                 />
               </div>
               <div className="space-y-2">
@@ -108,6 +131,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="bg-card border-input"
+                  disabled={isLoading}
                 />
               </div>
               
@@ -134,13 +158,6 @@ const Login = () => {
                   Register here
                 </Link>
               </p>
-            </div>
-            
-            <div className="mt-6 p-4 bg-accent rounded-lg">
-              <p className="text-xs text-accent-foreground font-medium mb-2">Demo Credentials:</p>
-              <p className="text-xs text-muted-foreground">Admin: admin@ulmind.com</p>
-              <p className="text-xs text-muted-foreground">User: user@ulmind.com</p>
-              <p className="text-xs text-muted-foreground italic mt-1">(any password works)</p>
             </div>
           </CardContent>
         </Card>
