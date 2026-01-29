@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   ArrowLeft,
   User,
@@ -25,6 +26,10 @@ import {
   AlertCircle,
   ZoomIn,
   Pencil,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  RefreshCw,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { format } from 'date-fns';
@@ -33,7 +38,19 @@ import {
   DialogContent,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import EditUserModal from '@/components/admin/EditUserModal';
+import RejectKYCModal from '@/components/admin/RejectKYCModal';
+import { toast } from 'sonner';
 
 interface UserDetailData {
   _id: string;
@@ -65,12 +82,14 @@ interface UserDetailData {
   startupBonus: { earned: number };
   leadershipBonus: { earned: number };
   kyc: {
-    status: 'none' | 'pending' | 'approved' | 'rejected';
+    status: 'none' | 'pending' | 'approved' | 'rejected' | 'verified';
     aadhaarNumber?: string;
     panCardNumber?: string;
     aadhaarFront?: { url: string };
     aadhaarBack?: { url: string };
     panImage?: { url: string };
+    verifiedAt?: string;
+    rejectionReason?: string;
   };
 }
 
@@ -90,6 +109,9 @@ const UserDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
+  const [isKYCActionLoading, setIsKYCActionLoading] = useState(false);
 
   const fetchUserDetail = useCallback(async () => {
     if (!memberId) return;
@@ -107,6 +129,45 @@ const UserDetail = () => {
       setIsLoading(false);
     }
   }, [memberId]);
+
+  const handleKYCVerify = async () => {
+    if (!memberId) return;
+    
+    try {
+      setIsKYCActionLoading(true);
+      await api.patch(`/api/v1/admin/kyc/verify/${memberId}`, {
+        status: 'verified',
+      });
+      toast.success('KYC verified successfully');
+      setIsApproveDialogOpen(false);
+      fetchUserDetail();
+    } catch (err: any) {
+      console.error('Error verifying KYC:', err);
+      toast.error(err.response?.data?.message || 'Failed to verify KYC');
+    } finally {
+      setIsKYCActionLoading(false);
+    }
+  };
+
+  const handleKYCReject = async (reason: string) => {
+    if (!memberId) return;
+    
+    try {
+      setIsKYCActionLoading(true);
+      await api.patch(`/api/v1/admin/kyc/verify/${memberId}`, {
+        status: 'rejected',
+        rejectionReason: reason,
+      });
+      toast.success('KYC rejected successfully');
+      setIsRejectModalOpen(false);
+      fetchUserDetail();
+    } catch (err: any) {
+      console.error('Error rejecting KYC:', err);
+      toast.error(err.response?.data?.message || 'Failed to reject KYC');
+    } finally {
+      setIsKYCActionLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUserDetail();
@@ -472,6 +533,30 @@ const UserDetail = () => {
 
         {/* Tab 3: KYC Documents */}
         <TabsContent value="kyc" className="space-y-6">
+          {/* Status Banners */}
+          {(user.kyc?.status === 'approved' || user.kyc?.status === 'verified') && (
+            <Alert className="border-primary/30 bg-primary/10">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-primary">
+                ✅ KYC Verified{user.kyc?.verifiedAt && ` on ${formatDate(user.kyc.verifiedAt)}`}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {user.kyc?.status === 'rejected' && (
+            <Alert variant="destructive" className="border-destructive/30 bg-destructive/10">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-1">
+                  <p>❌ KYC Rejected</p>
+                  {user.kyc?.rejectionReason && (
+                    <p className="text-sm opacity-80">Reason: {user.kyc.rejectionReason}</p>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -479,7 +564,7 @@ const UserDetail = () => {
                 <Badge 
                   variant="outline"
                   className={
-                    user.kyc?.status === 'approved' 
+                    user.kyc?.status === 'approved' || user.kyc?.status === 'verified'
                       ? 'bg-primary/20 text-primary border-primary/30'
                       : user.kyc?.status === 'pending'
                       ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
@@ -488,7 +573,7 @@ const UserDetail = () => {
                       : 'bg-muted text-muted-foreground'
                   }
                 >
-                  {user.kyc?.status || 'Not Submitted'}
+                  {user.kyc?.status === 'verified' ? 'approved' : user.kyc?.status || 'Not Submitted'}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -613,6 +698,53 @@ const UserDetail = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Action Bar */}
+          {user.kyc?.status === 'pending' && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-primary hover:bg-primary/90"
+                    onClick={() => setIsApproveDialogOpen(true)}
+                    disabled={isKYCActionLoading}
+                  >
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Approve / Verify
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="destructive"
+                    onClick={() => setIsRejectModalOpen(true)}
+                    disabled={isKYCActionLoading}
+                  >
+                    <XCircle className="mr-2 h-5 w-5" />
+                    Reject
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Re-verify option for rejected KYC */}
+          {user.kyc?.status === 'rejected' && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-primary hover:bg-primary/90"
+                    onClick={() => setIsApproveDialogOpen(true)}
+                    disabled={isKYCActionLoading}
+                  >
+                    <RefreshCw className="mr-2 h-5 w-5" />
+                    Re-verify KYC
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Tab 4: Bank Details */}
@@ -657,6 +789,46 @@ const UserDetail = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Approve KYC Confirmation Dialog */}
+      <AlertDialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-primary" />
+              Confirm KYC Verification
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to verify this user's KYC documents? This action will mark the user as verified and grant them full access to platform features.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isKYCActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleKYCVerify}
+              disabled={isKYCActionLoading}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isKYCActionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Confirm Verification'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject KYC Modal */}
+      <RejectKYCModal
+        open={isRejectModalOpen}
+        onOpenChange={setIsRejectModalOpen}
+        onConfirm={handleKYCReject}
+        isLoading={isKYCActionLoading}
+      />
     </div>
   );
 };
