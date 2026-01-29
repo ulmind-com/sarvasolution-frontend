@@ -37,10 +37,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.Re
     return <Navigate to="/login" replace />;
   }
   
-  // TODO: Add admin check when API provides role information
-  // if (requireAdmin && user.role !== 'admin') {
-  //   return <Navigate to="/dashboard" replace />;
-  // }
+  // Admin check - redirect non-admin users to dashboard profile
+  if (requireAdmin && user.role !== 'admin') {
+    return <Navigate to="/dashboard/profile" replace />;
+  }
   
   return <>{children}</>;
 };

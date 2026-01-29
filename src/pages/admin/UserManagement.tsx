@@ -1,11 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Table,
   TableBody,
@@ -14,37 +10,84 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Search, MoreVertical, Ban, LogIn, UserCheck } from 'lucide-react';
-import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search, Users, AlertCircle } from 'lucide-react';
+import api from '@/lib/api';
+import { format } from 'date-fns';
+
+interface AdminUser {
+  _id: string;
+  fullName: string;
+  memberId: string;
+  email: string;
+  phone: string;
+  rank: string;
+  status: 'active' | 'inactive';
+  joiningDate: string;
+}
+
+interface UsersResponse {
+  statusCode: number;
+  data: AdminUser[];
+  success: boolean;
+}
 
 const UserManagement = () => {
-  const { allUsers, updateUser, loginAsUser } = useAuth();
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredUsers = allUsers.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.id.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await api.get<UsersResponse>('/api/v1/admin/users');
+        setUsers(response.data.data);
+      } catch (err: any) {
+        console.error('Error fetching users:', err);
+        setError(err.response?.data?.message || 'Failed to fetch users');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter(user =>
+    user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.memberId.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleBlockUser = (userId: string, currentStatus: 'active' | 'blocked') => {
-    const newStatus = currentStatus === 'active' ? 'blocked' : 'active';
-    updateUser(userId, { status: newStatus });
-    toast.success(`User ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`);
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'dd-MM-yyyy');
+    } catch {
+      return dateString;
+    }
   };
 
-  const handleLoginAsUser = (userId: string) => {
-    loginAsUser(userId);
-    toast.success('Logged in as user. Redirecting to dashboard...');
-    navigate('/dashboard');
-  };
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+          <p className="text-muted-foreground">Manage all registered users</p>
+        </div>
+        <Card className="border-destructive/50">
+          <CardContent className="flex items-center gap-4 py-8">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <div>
+              <p className="font-medium text-foreground">Failed to load users</p>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -56,103 +99,92 @@ const UserManagement = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search users..."
+            placeholder="Search by name or Member ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 w-full sm:w-64 bg-card border-input"
+            className="pl-9 w-full sm:w-72 bg-card border-input"
           />
         </div>
       </div>
 
       <Card className="border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground">All Users ({filteredUsers.length})</CardTitle>
+        <CardHeader className="flex flex-row items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          <CardTitle className="text-foreground">
+            All Users {!isLoading && `(${filteredUsers.length})`}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead className="text-muted-foreground">User</TableHead>
-                  <TableHead className="text-muted-foreground">ID</TableHead>
+                  <TableHead className="text-muted-foreground">Member ID</TableHead>
+                  <TableHead className="text-muted-foreground">Full Name</TableHead>
+                  <TableHead className="text-muted-foreground">Email</TableHead>
+                  <TableHead className="text-muted-foreground">Phone</TableHead>
                   <TableHead className="text-muted-foreground">Rank</TableHead>
-                  <TableHead className="text-muted-foreground">Balance</TableHead>
                   <TableHead className="text-muted-foreground">Status</TableHead>
-                  <TableHead className="text-muted-foreground">Joined</TableHead>
-                  <TableHead className="text-right text-muted-foreground">Actions</TableHead>
+                  <TableHead className="text-muted-foreground">Joining Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id} className="border-border">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar} />
-                          <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-foreground">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{user.id}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {user.rank}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium text-foreground">
-                      ₹{user.balance.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="outline" 
-                        className={user.status === 'active' 
-                          ? 'bg-primary/20 text-primary border-primary/30' 
-                          : 'bg-destructive/20 text-destructive border-destructive/30'
-                        }
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{user.joinDate}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleLoginAsUser(user.id)}>
-                            <LogIn className="mr-2 h-4 w-4" />
-                            Login as User
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleBlockUser(user.id, user.status)}
-                            className={user.status === 'active' ? 'text-destructive' : 'text-primary'}
-                          >
-                            {user.status === 'active' ? (
-                              <>
-                                <Ban className="mr-2 h-4 w-4" />
-                                Block User
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                Unblock User
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {isLoading ? (
+                  // Loading skeleton rows
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index} className="border-border">
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      {searchQuery ? 'No users found matching your search' : 'No users found'}
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user._id} className="border-border">
+                      <TableCell className="font-mono text-sm font-medium text-foreground">
+                        {user.memberId}
+                      </TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        {user.fullName}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.email}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {user.phone}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {user.rank}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={user.status === 'active' 
+                            ? 'bg-primary/20 text-primary border-primary/30' 
+                            : 'bg-destructive/20 text-destructive border-destructive/30'
+                          }
+                        >
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(user.joiningDate)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
