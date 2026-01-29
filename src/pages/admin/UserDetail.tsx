@@ -557,41 +557,38 @@ const UserDetail = () => {
             </Alert>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>KYC Status</span>
-                <Badge 
-                  variant="outline"
-                  className={
-                    user.kyc?.status === 'approved' || user.kyc?.status === 'verified'
-                      ? 'bg-primary/20 text-primary border-primary/30'
-                      : user.kyc?.status === 'pending'
-                      ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
-                      : user.kyc?.status === 'rejected'
-                      ? 'bg-destructive/20 text-destructive border-destructive/30'
-                      : 'bg-muted text-muted-foreground'
-                  }
-                >
-                  {user.kyc?.status === 'verified' ? 'approved' : user.kyc?.status || 'Not Submitted'}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {user.kyc?.aadhaarNumber && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Aadhaar Number</span>
-                  <span className="font-mono">{user.kyc.aadhaarNumber}</span>
-                </div>
-              )}
-              {user.kyc?.panCardNumber && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">PAN Number</span>
-                  <span className="font-mono">{user.kyc.panCardNumber}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* KYC Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-muted/50 rounded-lg border">
+            <div>
+              <p className="text-sm text-muted-foreground">KYC Status</p>
+              <Badge 
+                variant="outline"
+                className={
+                  user.kyc?.status === 'approved' || user.kyc?.status === 'verified'
+                    ? 'bg-primary/20 text-primary border-primary/30 mt-1'
+                    : user.kyc?.status === 'pending'
+                    ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30 mt-1'
+                    : user.kyc?.status === 'rejected'
+                    ? 'bg-destructive/20 text-destructive border-destructive/30 mt-1'
+                    : 'bg-muted text-muted-foreground mt-1'
+                }
+              >
+                {user.kyc?.status === 'verified' ? 'Approved' : user.kyc?.status ? user.kyc.status.charAt(0).toUpperCase() + user.kyc.status.slice(1) : 'Not Submitted'}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Aadhaar Number</p>
+              <p className="font-mono text-lg font-semibold text-foreground">
+                {user.kyc?.aadhaarNumber || 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">PAN Number</p>
+              <p className="font-mono text-lg font-semibold text-foreground uppercase">
+                {(user as any).panCardNumber || user.kyc?.panCardNumber || 'N/A'}
+              </p>
+            </div>
+          </div>
 
           {/* Document Images */}
           {(user.kyc?.aadhaarFront?.url || user.kyc?.aadhaarBack?.url || user.kyc?.panImage?.url) && (
