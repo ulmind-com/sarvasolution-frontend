@@ -21,6 +21,7 @@ import {
   Menu,
   Shield,
   UserCog,
+  Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,7 @@ interface AdminLayoutProps {
 const menuItems = [
   { path: '/admin', label: 'Dashboard', icon: Home },
   { path: '/admin/users', label: 'User Management', icon: Users },
+  { path: '/admin/products', label: 'Products', icon: Package },
   { path: '/admin/payouts', label: 'Payout Requests', icon: CreditCard },
   { path: '/admin/profile', label: 'My Profile', icon: UserCog },
 ];

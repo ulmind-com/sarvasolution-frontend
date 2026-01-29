@@ -27,6 +27,7 @@ import AdminLayout from "./components/layout/AdminLayout";
 import AdminHome from "./pages/admin/AdminHome";
 import UserManagement from "./pages/admin/UserManagement";
 import UserDetail from "./pages/admin/UserDetail";
+import ProductManagement from "./pages/admin/ProductManagement";
 import PayoutRequests from "./pages/admin/PayoutRequests";
 
 const queryClient = new QueryClient();
@@ -138,6 +139,13 @@ const AppRoutes = () => {
         <ProtectedRoute requireAdmin>
           <AdminLayout>
             <UpdateProfile />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/products" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <ProductManagement />
           </AdminLayout>
         </ProtectedRoute>
       } />
