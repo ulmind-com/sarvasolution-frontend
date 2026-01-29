@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { 
@@ -13,16 +13,19 @@ import {
 import { toast } from 'sonner';
 
 const Overview = () => {
-  const { currentUser, transactions } = useAuth();
+  const { user } = useAuthStore();
   
-  const userTransactions = transactions.filter(t => t.userId === currentUser?.id);
-  const totalIncome = userTransactions
-    .filter(t => t.type === 'commission' || t.type === 'bonus')
-    .filter(t => t.status === 'completed')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Use real data from the authenticated user
+  const walletBalance = user?.wallet?.availableBalance || 0;
+  const totalEarnings = user?.wallet?.totalEarnings || 0;
+  const leftPV = user?.leftPV || 0;
+  const rightPV = user?.rightPV || 0;
+  const rank = user?.rank || 'Starter';
+  const userName = user?.fullName?.split(' ')[0] || 'User';
+  const memberId = user?.memberId || '';
 
   const copyReferralLink = () => {
-    const link = `https://ulmind.com/join/${currentUser?.id}`;
+    const link = `https://sarvasolutionvision.com/join/${memberId}`;
     navigator.clipboard.writeText(link);
     toast.success('Referral link copied to clipboard!');
   };
@@ -35,40 +38,38 @@ const Overview = () => {
     icon: typeof TrendingUp;
   }> = [
     {
-      title: 'Total Income',
-      value: `₹${totalIncome.toLocaleString()}`,
-      change: '+12.5%',
-      changeType: 'positive',
+      title: 'Total Earnings',
+      value: `₹${totalEarnings.toLocaleString()}`,
+      change: 'Lifetime',
+      changeType: 'neutral',
       icon: TrendingUp
     },
     {
       title: 'Wallet Balance',
-      value: `₹${currentUser?.balance.toLocaleString() || 0}`,
-      change: '+8.2%',
+      value: `₹${walletBalance.toLocaleString()}`,
+      change: 'Available',
       changeType: 'positive',
       icon: Wallet
     },
     {
-      title: 'Team Size',
-      value: '120',
-      change: '+24',
-      changeType: 'positive',
+      title: 'Member ID',
+      value: memberId || 'N/A',
+      change: 'Your unique ID',
+      changeType: 'neutral',
       icon: Users
     },
     {
       title: 'Current Rank',
-      value: currentUser?.rank || 'Starter',
-      change: 'Next: Platinum',
+      value: rank,
+      change: 'Keep growing!',
       changeType: 'neutral',
       icon: Award
     }
   ];
 
   const recentActivity = [
-    { type: 'commission', amount: 2500, user: 'Amit Kumar', time: '2 hours ago' },
-    { type: 'signup', user: 'New member joined', time: '5 hours ago' },
-    { type: 'purchase', amount: 1899, product: 'Energy Boost Powder', time: '1 day ago' },
-    { type: 'commission', amount: 1500, user: 'Sneha Reddy', time: '2 days ago' },
+    { type: 'info', message: 'Welcome to Sarva Solution Vision!', time: 'Just now' },
+    { type: 'info', message: 'Complete your profile for better experience', time: 'Tip' },
   ];
 
   return (
@@ -76,7 +77,7 @@ const Overview = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome back, {currentUser?.name?.split(' ')[0]}!</h1>
+          <h1 className="text-2xl font-bold text-foreground">Welcome back, {userName}!</h1>
           <p className="text-muted-foreground">Here's what's happening with your network today.</p>
         </div>
         <Button onClick={copyReferralLink} className="gap-2">
@@ -128,13 +129,13 @@ const Overview = () => {
               <div className="text-center p-4 bg-accent rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Left Leg PV</p>
                 <p className="text-3xl font-bold text-accent-foreground">
-                  {currentUser?.leftPV.toLocaleString()}
+                  {leftPV.toLocaleString()}
                 </p>
               </div>
               <div className="text-center p-4 bg-accent rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Right Leg PV</p>
                 <p className="text-3xl font-bold text-accent-foreground">
-                  {currentUser?.rightPV.toLocaleString()}
+                  {rightPV.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -155,26 +156,11 @@ const Overview = () => {
             <div className="space-y-4">
               {recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <div className={`h-2 w-2 rounded-full ${
-                    activity.type === 'commission' ? 'bg-primary' :
-                    activity.type === 'signup' ? 'bg-chart-2' :
-                    'bg-chart-3'
-                  }`} />
+                  <div className="h-2 w-2 rounded-full bg-primary" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">
-                      {activity.type === 'commission' && `Commission from ${activity.user}`}
-                      {activity.type === 'signup' && activity.user}
-                      {activity.type === 'purchase' && `Purchased ${activity.product}`}
-                    </p>
+                    <p className="text-sm text-foreground">{activity.message}</p>
                     <p className="text-xs text-muted-foreground">{activity.time}</p>
                   </div>
-                  {activity.amount && (
-                    <span className={`text-sm font-medium ${
-                      activity.type === 'purchase' ? 'text-destructive' : 'text-primary'
-                    }`}>
-                      {activity.type === 'purchase' ? '-' : '+'}₹{activity.amount.toLocaleString()}
-                    </span>
-                  )}
                 </div>
               ))}
             </div>
@@ -189,7 +175,7 @@ const Overview = () => {
             <div>
               <h3 className="text-xl font-bold">Invite Friends & Earn More</h3>
               <p className="text-primary-foreground/80 mt-1">
-                Share your unique referral link and earn ₹500 for every successful signup!
+                Share your unique referral link and grow your network!
               </p>
             </div>
             <Button 

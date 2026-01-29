@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
@@ -31,15 +31,16 @@ import PayoutRequests from "./pages/admin/PayoutRequests";
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) => {
-  const { currentUser, isAdmin } = useAuth();
+  const { user, token } = useAuthStore();
   
-  if (!currentUser) {
-    return <Navigate to="/" replace />;
+  if (!user || !token) {
+    return <Navigate to="/login" replace />;
   }
   
-  if (requireAdmin && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  // TODO: Add admin check when API provides role information
+  // if (requireAdmin && user.role !== 'admin') {
+  //   return <Navigate to="/dashboard" replace />;
+  // }
   
   return <>{children}</>;
 };
@@ -141,15 +142,13 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

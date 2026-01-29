@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -30,8 +30,6 @@ import {
   Network,
   IndianRupee,
   FileText,
-  Settings,
-  Lock
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { incomeTypes } from '@/data/mockData';
@@ -71,13 +69,19 @@ const menuItems: MenuItem[] = [
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Use real user data
+  const userName = user?.fullName || 'User';
+  const userEmail = user?.email || '';
+  const userRank = user?.rank || 'Starter';
+  const walletBalance = user?.wallet?.availableBalance || 0;
+
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/login');
   };
 
   return (
@@ -100,10 +104,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="h-16 flex items-center justify-between px-4 border-b border-border">
           {!collapsed && (
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">UL</span>
-              </div>
-              <span className="font-bold text-foreground">ULMind</span>
+              <img 
+                src="https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png" 
+                alt="Sarva Solution Vision" 
+                className="h-8 w-auto"
+              />
             </Link>
           )}
           <Button 
@@ -186,18 +191,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </nav>
         
         {/* User Info */}
-        {!collapsed && currentUser && (
+        {!collapsed && user && (
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={currentUser.avatar} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {currentUser.name.charAt(0)}
+                  {userName.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">{currentUser.name}</p>
-                <p className="text-xs text-muted-foreground">{currentUser.rank}</p>
+                <p className="font-medium text-foreground truncate">{userName}</p>
+                <p className="text-xs text-muted-foreground">{userRank}</p>
               </div>
             </div>
           </div>
@@ -220,9 +224,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="flex-1" />
           
           <div className="flex items-center gap-4">
-            {currentUser && (
+            {user && (
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-foreground">₹{currentUser.balance.toLocaleString()}</p>
+                <p className="text-sm font-medium text-foreground">₹{walletBalance.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Wallet Balance</p>
               </div>
             )}
@@ -231,9 +235,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={currentUser?.avatar} />
                     <AvatarFallback className="bg-primary text-primary-foreground">
-                      {currentUser?.name.charAt(0)}
+                      {userName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -241,14 +244,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <DropdownMenuContent className="w-56" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{currentUser?.name}</p>
-                    <p className="text-xs text-muted-foreground">{currentUser?.email}</p>
+                    <p className="text-sm font-medium">{userName}</p>
+                    <p className="text-xs text-muted-foreground">{userEmail}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
