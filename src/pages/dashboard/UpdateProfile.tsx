@@ -193,8 +193,8 @@ const UpdateProfile = () => {
     }
   };
 
-  // Get display image (preview or existing)
-  const displayImage = imagePreview || user?.profilePicture || null;
+  // Get display image (preview or existing) - profilePicture is an object with url
+  const displayImage = imagePreview || user?.profilePicture?.url || null;
 
   return (
     <div className="space-y-6">

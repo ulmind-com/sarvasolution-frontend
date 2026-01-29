@@ -46,7 +46,7 @@ export interface ApiUser {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  profilePicture?: string;
+  profilePicture?: { url: string } | null;
   dateOfBirth?: string;
   address?: UserAddress;
   nominee?: NomineeDetails;
