@@ -37,11 +37,16 @@ const Login = () => {
       return;
     }
     
-    const result = await login(memberId.trim(), password);
-    
-    if (result.success) {
-      toast.success('Login successful!');
-      navigate(result.redirect || '/dashboard');
+    try {
+      const result = await login(memberId.trim(), password);
+      
+      if (result.success) {
+        toast.success('Login successful!');
+        // Force redirect immediately after success
+        navigate('/dashboard/profile', { replace: true });
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed');
     }
   };
 
