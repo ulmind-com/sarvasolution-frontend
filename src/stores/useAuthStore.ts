@@ -8,6 +8,27 @@ export interface UserWallet {
   pendingWithdrawal: number;
 }
 
+export interface UserAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
+}
+
+export interface BankAccount {
+  accountNumber?: string;
+  ifscCode?: string;
+  bankName?: string;
+  branchName?: string;
+  accountHolderName?: string;
+}
+
+export interface NomineeDetails {
+  name?: string;
+  relation?: string;
+  dateOfBirth?: string;
+}
+
 export interface ApiUser {
   _id: string;
   memberId: string;
@@ -15,6 +36,7 @@ export interface ApiUser {
   email: string;
   phone: string;
   sponsorId: string;
+  sponsorName?: string;
   panCardNumber: string;
   rank: string;
   leftPV: number;
@@ -23,6 +45,10 @@ export interface ApiUser {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  profilePicture?: string;
+  dateOfBirth?: string;
+  address?: UserAddress;
+  nominee?: NomineeDetails;
 }
 
 interface RegisterData {
@@ -48,10 +74,20 @@ interface LoginResponse {
   message?: string;
 }
 
+interface ProfileResponse {
+  success: boolean;
+  data: {
+    user: ApiUser;
+    bankAccount?: BankAccount;
+  };
+}
+
 interface AuthState {
   user: ApiUser | null;
   token: string | null;
+  bankDetails: BankAccount | null;
   isLoading: boolean;
+  isProfileLoading: boolean;
   error: string | null;
   registeredMemberId: string | null;
   showMemberIdModal: boolean;
@@ -62,6 +98,8 @@ interface AuthState {
   logout: () => void;
   clearError: () => void;
   closeMemberIdModal: () => void;
+  fetchProfile: () => Promise<{ success: boolean }>;
+  updateProfile: (formData: FormData) => Promise<{ success: boolean }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -69,7 +107,9 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       token: null,
+      bankDetails: null,
       isLoading: false,
+      isProfileLoading: false,
       error: null,
       registeredMemberId: null,
       showMemberIdModal: false,
@@ -133,6 +173,7 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           token: null,
+          bankDetails: null,
           error: null,
           registeredMemberId: null,
           showMemberIdModal: false,
@@ -146,12 +187,61 @@ export const useAuthStore = create<AuthState>()(
       closeMemberIdModal: () => {
         set({ showMemberIdModal: false, registeredMemberId: null });
       },
+
+      fetchProfile: async () => {
+        set({ isProfileLoading: true });
+        
+        try {
+          const response = await api.get<ProfileResponse>('/api/v1/profile');
+          
+          const { user, bankAccount } = response.data.data;
+          
+          set({
+            user,
+            bankDetails: bankAccount || null,
+            isProfileLoading: false,
+          });
+          
+          return { success: true };
+        } catch (error: any) {
+          console.error('Error fetching profile:', error);
+          set({ isProfileLoading: false });
+          return { success: false };
+        }
+      },
+
+      updateProfile: async (formData: FormData) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          await api.patch('/api/v1/profile', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          
+          set({ isLoading: false });
+          
+          // Refresh profile data after successful update
+          await get().fetchProfile();
+          
+          return { success: true };
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'Failed to update profile. Please try again.';
+          set({
+            isLoading: false,
+            error: errorMessage,
+          });
+          return { success: false };
+        }
+      },
     }),
     {
       name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
         token: state.token,
+        bankDetails: state.bankDetails,
       }),
     }
   )
