@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { CalendarIcon, Upload, Loader2, Camera } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import KYCDetailsTab from '@/components/profile/KYCDetailsTab';
 
 const UpdateProfile = () => {
   const { user, bankDetails, isLoading, isProfileLoading, fetchProfile, updateProfile, error, clearError } = useAuthStore();
@@ -631,35 +632,7 @@ const UpdateProfile = () => {
             </TabsContent>
 
             <TabsContent value="kyc" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Aadhaar Card (Front)</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Click to upload or drag & drop</p>
-                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 2MB</p>
-                    <input type="file" className="hidden" accept="image/*" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Aadhaar Card (Back)</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Click to upload or drag & drop</p>
-                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 2MB</p>
-                    <input type="file" className="hidden" accept="image/*" />
-                  </div>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>PAN Card</Label>
-                  <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Click to upload or drag & drop</p>
-                    <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 2MB</p>
-                    <input type="file" className="hidden" accept="image/*" />
-                  </div>
-                </div>
-              </div>
+              <KYCDetailsTab />
             </TabsContent>
 
             <div className="mt-8 pt-6 border-t border-border">

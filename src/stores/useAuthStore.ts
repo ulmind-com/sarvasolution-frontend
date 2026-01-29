@@ -29,6 +29,16 @@ export interface NomineeDetails {
   dateOfBirth?: string;
 }
 
+export interface KYCDetails {
+  status: 'none' | 'pending' | 'approved' | 'rejected';
+  aadhaarNumber?: string;
+  panCardNumber?: string;
+  aadhaarFront?: { url: string };
+  aadhaarBack?: { url: string };
+  panImage?: { url: string };
+  rejectionReason?: string;
+}
+
 export interface ApiUser {
   _id: string;
   memberId: string;
@@ -50,6 +60,7 @@ export interface ApiUser {
   dateOfBirth?: string;
   address?: UserAddress;
   nominee?: NomineeDetails;
+  kyc?: KYCDetails;
 }
 
 interface RegisterData {
@@ -103,6 +114,7 @@ interface AuthState {
   closeMemberIdModal: () => void;
   fetchProfile: () => Promise<{ success: boolean }>;
   updateProfile: (formData: FormData) => Promise<{ success: boolean }>;
+  submitKYC: (formData: FormData) => Promise<{ success: boolean }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -238,6 +250,45 @@ export const useAuthStore = create<AuthState>()(
             error: errorMessage,
           });
           return { success: false };
+        }
+      },
+
+      submitKYC: async (formData: FormData) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          await api.post('/api/v1/kyc/submit', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          
+          // Immediately update local kyc status to 'pending'
+          const currentUser = get().user;
+          if (currentUser) {
+            set({
+              user: {
+                ...currentUser,
+                kyc: {
+                  ...currentUser.kyc,
+                  status: 'pending',
+                },
+              },
+              isLoading: false,
+            });
+          } else {
+            set({ isLoading: false });
+          }
+          
+          return { success: true };
+        } catch (error: any) {
+          const errorMessage = error.response?.data?.message || 'KYC submission failed. Please try again.';
+          set({
+            isLoading: false,
+            error: errorMessage,
+          });
+          // Throw error so component can handle specific cases
+          throw new Error(errorMessage);
         }
       },
     }),
