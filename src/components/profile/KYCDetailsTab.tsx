@@ -309,7 +309,7 @@ const KYCDetailsTab = () => {
               setAadhaarNumber(formatted);
             }}
             disabled={isLocked}
-            className={cn(isLocked && 'bg-muted')}
+            className={cn('text-foreground placeholder:text-muted-foreground', isLocked && 'bg-muted')}
           />
         </div>
         <div className="space-y-2">
@@ -322,7 +322,7 @@ const KYCDetailsTab = () => {
             value={panNumber}
             onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
             disabled={isLocked}
-            className={cn(isLocked && 'bg-muted')}
+            className={cn('text-foreground placeholder:text-muted-foreground', isLocked && 'bg-muted')}
           />
         </div>
       </div>
