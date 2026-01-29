@@ -19,8 +19,16 @@ interface Product {
     url: string;
     public_id: string;
   };
+  image?: {
+    url: string;
+    publicId: string;
+  };
   createdAt: string;
 }
+
+const getProductImageUrl = (product: Product): string | null => {
+  return product.productImage?.url || product.image?.url || null;
+};
 
 const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -133,17 +141,20 @@ const ProductManagement = () => {
           {filteredProducts.map((product) => (
             <Card key={product._id} className="overflow-hidden group hover:shadow-lg transition-shadow">
               <div className="aspect-square relative overflow-hidden bg-muted">
-                {product.productImage?.url ? (
+                {getProductImageUrl(product) ? (
                   <img
-                    src={product.productImage.url}
+                    src={getProductImageUrl(product)!}
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.parentElement?.querySelector('.placeholder-icon')?.classList.remove('hidden');
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="h-16 w-16 text-muted-foreground" />
-                  </div>
-                )}
+                ) : null}
+                <div className={`w-full h-full flex items-center justify-center absolute inset-0 placeholder-icon ${getProductImageUrl(product) ? 'hidden' : ''}`}>
+                  <Package className="h-16 w-16 text-muted-foreground" />
+                </div>
                 <Badge className="absolute top-2 right-2 bg-primary text-primary-foreground">
                   {product.bv} BV
                 </Badge>
