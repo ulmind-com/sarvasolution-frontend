@@ -26,6 +26,7 @@ import IncomeReport from "./pages/dashboard/IncomeReport";
 import AdminLayout from "./components/layout/AdminLayout";
 import AdminHome from "./pages/admin/AdminHome";
 import UserManagement from "./pages/admin/UserManagement";
+import UserDetail from "./pages/admin/UserDetail";
 import PayoutRequests from "./pages/admin/PayoutRequests";
 
 const queryClient = new QueryClient();
@@ -123,6 +124,20 @@ const AppRoutes = () => {
         <ProtectedRoute requireAdmin>
           <AdminLayout>
             <UserManagement />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/users/:memberId" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <UserDetail />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/profile" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <UpdateProfile />
           </AdminLayout>
         </ProtectedRoute>
       } />
