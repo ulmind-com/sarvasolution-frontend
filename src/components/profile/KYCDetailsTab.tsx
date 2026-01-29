@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Upload, Loader2, CheckCircle, Clock, XCircle, FileImage, X } from 'lucide-react';
+import { Upload, Loader2, CheckCircle, Clock, XCircle, FileImage, X, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileUploadState {
@@ -35,6 +35,22 @@ const KYCDetailsTab = () => {
   // Get KYC status
   const kycStatus = user?.kyc?.status || 'none';
   const isLocked = kycStatus === 'pending' || kycStatus === 'approved';
+  
+  // Populate form with existing data when user data loads
+  useEffect(() => {
+    if (user) {
+      // Format Aadhaar with spaces for display
+      if (user.kyc?.aadhaarNumber) {
+        const formatted = user.kyc.aadhaarNumber.replace(/(\d{4})(?=\d)/g, '$1 ');
+        setAadhaarNumber(formatted);
+      }
+      // Prioritize root panCardNumber, fallback to kyc.panCardNumber
+      const pan = user.panCardNumber || user.kyc?.panCardNumber;
+      if (pan) {
+        setPanNumber(pan.toUpperCase());
+      }
+    }
+  }, [user]);
   
   const handleFileSelect = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -296,34 +312,58 @@ const KYCDetailsTab = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="aadhaarNumber">Aadhaar Number</Label>
-          <Input
-            id="aadhaarNumber"
-            type="text"
-            placeholder="XXXX XXXX XXXX"
-            maxLength={14}
-            value={aadhaarNumber}
-            onChange={(e) => {
-              // Format as XXXX XXXX XXXX
-              const value = e.target.value.replace(/\D/g, '').slice(0, 12);
-              const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 ');
-              setAadhaarNumber(formatted);
-            }}
-            disabled={isLocked}
-            className={cn('text-foreground placeholder:text-muted-foreground', isLocked && 'bg-muted')}
-          />
+          <div className="relative">
+            <Input
+              id="aadhaarNumber"
+              type="text"
+              placeholder="XXXX XXXX XXXX"
+              maxLength={14}
+              value={aadhaarNumber}
+              onChange={(e) => {
+                // Format as XXXX XXXX XXXX
+                const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                const formatted = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+                setAadhaarNumber(formatted);
+              }}
+              disabled={isLocked}
+              readOnly={isLocked}
+              className={cn(
+                'text-foreground placeholder:text-muted-foreground font-mono',
+                isLocked && 'bg-muted/50 text-foreground pr-10'
+              )}
+            />
+            {isLocked && kycStatus === 'approved' && (
+              <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+            )}
+            {isLocked && kycStatus === 'pending' && (
+              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="panNumber">PAN Card Number</Label>
-          <Input
-            id="panNumber"
-            type="text"
-            placeholder="XXXXX0000X"
-            maxLength={10}
-            value={panNumber}
-            onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-            disabled={isLocked}
-            className={cn('text-foreground placeholder:text-muted-foreground', isLocked && 'bg-muted')}
-          />
+          <div className="relative">
+            <Input
+              id="panNumber"
+              type="text"
+              placeholder="XXXXX0000X"
+              maxLength={10}
+              value={panNumber}
+              onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
+              disabled={isLocked}
+              readOnly={isLocked}
+              className={cn(
+                'text-foreground placeholder:text-muted-foreground font-mono uppercase',
+                isLocked && 'bg-muted/50 text-foreground pr-10'
+              )}
+            />
+            {isLocked && kycStatus === 'approved' && (
+              <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+            )}
+            {isLocked && kycStatus === 'pending' && (
+              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
         </div>
       </div>
       
