@@ -347,6 +347,9 @@ const UpdateProfile = () => {
                           selected={dob}
                           onSelect={setDob}
                           initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={1940}
+                          toYear={new Date().getFullYear()}
                           className="pointer-events-auto"
                         />
                       </PopoverContent>
@@ -622,6 +625,9 @@ const UpdateProfile = () => {
                           selected={nomineeDob}
                           onSelect={setNomineeDob}
                           initialFocus
+                          captionLayout="dropdown-buttons"
+                          fromYear={1940}
+                          toYear={new Date().getFullYear()}
                           className="pointer-events-auto"
                         />
                       </PopoverContent>
