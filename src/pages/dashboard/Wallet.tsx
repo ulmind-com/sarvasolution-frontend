@@ -26,18 +26,20 @@ import { Wallet as WalletIcon, ArrowUpRight, ArrowDownRight, Clock, Loader2, Ale
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
-interface WalletData {
-  availableBalance: number;
-  totalEarnings: number;
-  pendingWithdrawals: number;
-}
-
 interface PayoutRequest {
   _id: string;
   amount: number;
   status: 'pending' | 'processed' | 'rejected';
   createdAt: string;
   processedAt?: string;
+}
+
+interface WalletData {
+  availableBalance: number;
+  totalEarnings: number;
+  pendingWithdrawal?: number;
+  pendingWithdrawals?: number;
+  payoutHistory?: PayoutRequest[];
 }
 
 const Wallet = () => {
@@ -61,15 +63,21 @@ const Wallet = () => {
     try {
       // Fetch wallet balance
       const walletResponse = await api.get('/api/v1/user/wallet');
-      setWalletData(walletResponse.data.data || walletResponse.data);
+      const walletInfo = walletResponse.data.data || walletResponse.data;
+      setWalletData(walletInfo);
 
-      // Fetch payout history
-      try {
-        const historyResponse = await api.get('/api/v1/user/payouts');
-        setPayoutHistory(historyResponse.data.data || historyResponse.data || []);
-      } catch {
-        // If payout history endpoint doesn't exist, use empty array
-        setPayoutHistory([]);
+      // Check if payoutHistory is included in wallet response
+      if (walletInfo.payoutHistory && Array.isArray(walletInfo.payoutHistory)) {
+        setPayoutHistory(walletInfo.payoutHistory);
+      } else {
+        // Fetch payout history separately if not included
+        try {
+          const historyResponse = await api.get('/api/v1/user/payouts');
+          setPayoutHistory(historyResponse.data.data || historyResponse.data || []);
+        } catch {
+          // If payout history endpoint doesn't exist, use empty array
+          setPayoutHistory([]);
+        }
       }
     } catch (error: any) {
       console.error('Error fetching wallet data:', error);
@@ -78,7 +86,7 @@ const Wallet = () => {
         setWalletData({
           availableBalance: user.wallet.availableBalance || 0,
           totalEarnings: user.wallet.totalEarnings || 0,
-          pendingWithdrawals: 0,
+          pendingWithdrawal: user.wallet.pendingWithdrawal || 0,
         });
       }
     } finally {
@@ -88,9 +96,10 @@ const Wallet = () => {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      pending: 'bg-chart-4/20 text-chart-4 border-chart-4/30',
-      processed: 'bg-primary/20 text-primary border-primary/30',
-      rejected: 'bg-destructive/20 text-destructive border-destructive/30',
+      pending: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
+      processed: 'bg-green-500/20 text-green-600 border-green-500/30',
+      approved: 'bg-green-500/20 text-green-600 border-green-500/30',
+      rejected: 'bg-red-500/20 text-red-600 border-red-500/30',
     };
     return styles[status as keyof typeof styles] || styles.pending;
   };
@@ -156,9 +165,9 @@ const Wallet = () => {
   };
 
   const availableBalance = walletData?.availableBalance || 0;
-  const pendingAmount = payoutHistory
-    .filter(p => p.status === 'pending')
-    .reduce((sum, p) => sum + p.amount, 0);
+  const totalEarnings = walletData?.totalEarnings || 0;
+  const pendingAmount = walletData?.pendingWithdrawal || walletData?.pendingWithdrawals || 
+    payoutHistory.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
 
   if (isLoading) {
     return (
@@ -176,8 +185,8 @@ const Wallet = () => {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="border-border bg-primary text-primary-foreground">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border bg-green-600 text-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium opacity-90">
               Available Balance
@@ -195,12 +204,27 @@ const Wallet = () => {
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Withdrawals
+              Total Earnings
             </CardTitle>
-            <Clock className="h-5 w-5 text-muted-foreground" />
+            <ArrowUpRight className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">
+              ₹{totalEarnings.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Lifetime income</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pending Withdrawals
+            </CardTitle>
+            <Clock className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-500">
               ₹{pendingAmount.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Processing</p>
