@@ -177,6 +177,16 @@ All colors MUST be HSL.
 
 /* Utility classes for glassmorphism */
 @layer utilities {
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--glass-blur));

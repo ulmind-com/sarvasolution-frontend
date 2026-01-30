@@ -210,12 +210,12 @@ const UpdateProfile = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-6">
-              <TabsTrigger value="personal">Personal Details</TabsTrigger>
-              <TabsTrigger value="contact">Contact Details</TabsTrigger>
-              <TabsTrigger value="banking">Banking Details</TabsTrigger>
-              <TabsTrigger value="nominee">Nominee Details</TabsTrigger>
-              <TabsTrigger value="kyc">KYC Details</TabsTrigger>
+            <TabsList className="flex w-full justify-start overflow-x-auto scrollbar-hide bg-muted/50 p-1 mb-6 gap-1">
+              <TabsTrigger value="personal" className="flex-shrink-0 whitespace-nowrap">Personal Details</TabsTrigger>
+              <TabsTrigger value="contact" className="flex-shrink-0 whitespace-nowrap">Contact Details</TabsTrigger>
+              <TabsTrigger value="banking" className="flex-shrink-0 whitespace-nowrap">Banking Details</TabsTrigger>
+              <TabsTrigger value="nominee" className="flex-shrink-0 whitespace-nowrap">Nominee Details</TabsTrigger>
+              <TabsTrigger value="kyc" className="flex-shrink-0 whitespace-nowrap">KYC Details</TabsTrigger>
             </TabsList>
 
             <TabsContent value="personal" className="space-y-6">
