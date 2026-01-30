@@ -24,6 +24,8 @@ import {
   Package,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { PageTransition } from '@/components/PageTransition';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -54,14 +56,14 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 bg-foreground/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
           onClick={() => setMobileOpen(false)}
         />
       )}
       
-      {/* Sidebar - Darker for Admin */}
+      {/* Sidebar - Darker Admin Theme with Glass */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-secondary transition-all duration-300",
+        "fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-secondary/95 backdrop-blur-md border-r border-border/30 transition-all duration-300",
         collapsed ? "w-16" : "w-64",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
@@ -69,7 +71,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         <div className="h-16 flex items-center justify-between px-4 border-b border-secondary-foreground/10">
           {!collapsed && (
             <Link to="/admin" className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-primary shadow-glow-primary flex items-center justify-center">
                 <Shield className="h-4 w-4 text-primary-foreground" />
               </div>
               <span className="font-bold text-secondary-foreground">Admin Panel</span>
@@ -95,9 +97,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
                   isActive 
-                    ? "bg-primary text-primary-foreground" 
+                    ? "bg-primary text-primary-foreground shadow-glow-primary" 
                     : "text-secondary-foreground/70 hover:bg-secondary-foreground/10 hover:text-secondary-foreground"
                 )}
               >
@@ -112,7 +114,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         {!collapsed && user && (
           <div className="p-4 border-t border-secondary-foreground/10">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/30">
                 <AvatarImage src={user.profilePicture?.url} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {user.fullName.charAt(0)}
@@ -129,8 +131,8 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
+        {/* Top Bar - Glassmorphism */}
+        <header className="h-16 glass border-b border-border/50 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
           <Button 
             variant="ghost" 
             size="icon"
@@ -142,36 +144,42 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           
           <div className="flex-1" />
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user?.profilePicture?.url} />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.fullName.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user?.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-200">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user?.profilePicture?.url} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.fullName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 glass" align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user?.fullName}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive hover:bg-destructive/10 cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
         
-        {/* Page Content */}
+        {/* Page Content with transition */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {children}
+          <PageTransition key={location.pathname}>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

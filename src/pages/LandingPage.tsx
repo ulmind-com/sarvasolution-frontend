@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import WhatsAppWidget from '@/components/WhatsAppWidget';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Sprout, 
   Fish, 
@@ -43,12 +44,12 @@ const staggerContainer = {
 };
 
 const productSegments = [
-  { name: 'Agriculture', icon: Sprout, color: 'text-green-600', bg: 'bg-green-100' },
-  { name: 'Aquaculture', icon: Fish, color: 'text-blue-600', bg: 'bg-blue-100' },
-  { name: 'Personal Care', icon: Smile, color: 'text-pink-600', bg: 'bg-pink-100' },
-  { name: 'Health Care', icon: HeartPulse, color: 'text-red-600', bg: 'bg-red-100' },
-  { name: 'Home Care', icon: Home, color: 'text-orange-600', bg: 'bg-orange-100' },
-  { name: 'Luxury Goods', icon: Gem, color: 'text-amber-600', bg: 'bg-amber-100' },
+  { name: 'Agriculture', icon: Sprout, color: 'text-green-600', bg: 'bg-green-100 dark:bg-green-900/30' },
+  { name: 'Aquaculture', icon: Fish, color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30' },
+  { name: 'Personal Care', icon: Smile, color: 'text-pink-600', bg: 'bg-pink-100 dark:bg-pink-900/30' },
+  { name: 'Health Care', icon: HeartPulse, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30' },
+  { name: 'Home Care', icon: Home, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+  { name: 'Luxury Goods', icon: Gem, color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/30' },
 ];
 
 const whyChooseUs = [
@@ -70,8 +71,8 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      {/* Navbar - Glassmorphism */}
+      <nav className="sticky top-0 z-50 glass border-b border-border/50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <img 
@@ -90,11 +91,14 @@ const LandingPage = () => {
             <button onClick={() => scrollToSection('contact')} className="text-muted-foreground hover:text-foreground transition-colors">Contact</button>
           </div>
           
-          <Link to="/login">
-            <Button className="font-semibold">
-              Member Login
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <Link to="/login">
+              <Button className="font-semibold">
+                Member Login
+              </Button>
+            </Link>
+          </div>
         </div>
       </nav>
 

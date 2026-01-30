@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { incomeTypes } from '@/data/mockData';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { PageTransition } from '@/components/PageTransition';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -89,19 +91,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 bg-foreground/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-foreground/50 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
           onClick={() => setMobileOpen(false)}
         />
       )}
       
-      {/* Sidebar */}
+      {/* Sidebar - Glassmorphism */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-card border-r border-border transition-all duration-300",
+        "fixed lg:static inset-y-0 left-0 z-50 flex flex-col glass border-r transition-all duration-300",
         collapsed ? "w-16" : "w-64",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-border/50">
           {!collapsed && (
             <Link to="/dashboard" className="flex items-center gap-2">
               <img 
@@ -115,7 +117,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             variant="ghost" 
             size="icon"
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex"
+            className="hidden lg:flex hover:bg-accent/50"
           >
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
@@ -131,17 +133,17 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <CollapsibleTrigger asChild>
                     <button
                       className={cn(
-                        "flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-colors",
+                        "flex items-center justify-between w-full px-3 py-2.5 rounded-lg transition-all duration-200",
                         isChildActive
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-accent/80 text-accent-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <item.icon className="h-5 w-5 flex-shrink-0" />
                         {!collapsed && <span className="font-medium">{item.label}</span>}
                       </div>
-                      {!collapsed && <ChevronDown className="h-4 w-4" />}
+                      {!collapsed && <ChevronDown className="h-4 w-4 transition-transform duration-200" />}
                     </button>
                   </CollapsibleTrigger>
                   {!collapsed && (
@@ -154,10 +156,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                             to={child.path}
                             onClick={() => setMobileOpen(false)}
                             className={cn(
-                              "block px-3 py-2 rounded-lg text-sm transition-colors",
+                              "block px-3 py-2 rounded-lg text-sm transition-all duration-200",
                               isActive
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                ? "bg-primary text-primary-foreground shadow-glow-primary"
+                                : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
                             )}
                           >
                             {child.label}
@@ -177,10 +179,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 to={item.path!}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
                   isActive 
-                    ? "bg-primary text-primary-foreground" 
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-primary text-primary-foreground shadow-glow-primary" 
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -192,9 +194,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         
         {/* User Info */}
         {!collapsed && user && (
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-border/50">
             <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
+              <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {userName.charAt(0)}
                 </AvatarFallback>
@@ -210,8 +212,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
+        {/* Top Bar - Glassmorphism */}
+        <header className="h-16 glass border-b border-border/50 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30">
           <Button 
             variant="ghost" 
             size="icon"
@@ -223,17 +225,19 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           
           <div className="flex-1" />
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {user && (
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-medium text-foreground">₹{walletBalance.toLocaleString()}</p>
+                <p className="text-sm font-semibold text-foreground">₹{walletBalance.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Wallet Balance</p>
               </div>
             )}
             
+            <ThemeToggle />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-200">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {userName.charAt(0)}
@@ -241,22 +245,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuContent className="w-56 glass" align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium">{userName}</p>
                     <p className="text-xs text-muted-foreground">{userEmail}</p>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem asChild className="hover:bg-accent/50 cursor-pointer">
                   <Link to="/dashboard/profile">
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive hover:bg-destructive/10 cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   Log out
                 </DropdownMenuItem>
@@ -265,9 +269,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
         </header>
         
-        {/* Page Content */}
+        {/* Page Content with transition */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {children}
+          <PageTransition key={location.pathname}>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>
