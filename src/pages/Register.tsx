@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, TrendingUp, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import MemberIdModal from '@/components/MemberIdModal';
@@ -17,6 +18,7 @@ const Register = () => {
     phone: '',
     sponsorId: '',
     panCardNumber: '',
+    preferredPosition: '' as 'left' | 'right' | '',
   });
   const [showPassword, setShowPassword] = useState(false);
   
@@ -59,6 +61,10 @@ const Register = () => {
       toast.error('Please enter a valid Sponsor ID');
       return false;
     }
+    if (!formData.preferredPosition) {
+      toast.error('Please select a position (Left or Right)');
+      return false;
+    }
     if (!formData.panCardNumber.trim()) {
       toast.error('Please enter your PAN Card number');
       return false;
@@ -78,6 +84,7 @@ const Register = () => {
       phone: formData.phone.trim(),
       sponsorId: formData.sponsorId.trim(),
       panCardNumber: formData.panCardNumber.trim(),
+      preferredPosition: formData.preferredPosition as 'left' | 'right',
     });
     
     if (result.success) {
@@ -151,6 +158,25 @@ const Register = () => {
                     className="bg-card border-input"
                     disabled={isLoading}
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="preferredPosition" className="text-foreground">Select Position *</Label>
+                  <Select
+                    value={formData.preferredPosition}
+                    onValueChange={(value: 'left' | 'right') => 
+                      setFormData(prev => ({ ...prev, preferredPosition: value }))
+                    }
+                    disabled={isLoading}
+                  >
+                    <SelectTrigger className="bg-card border-input">
+                      <SelectValue placeholder="Choose Left or Right" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="left">Left</SelectItem>
+                      <SelectItem value="right">Right</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div className="space-y-2">

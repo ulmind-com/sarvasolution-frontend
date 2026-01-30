@@ -70,6 +70,7 @@ interface RegisterData {
   phone: string;
   sponsorId: string;
   panCardNumber: string;
+  preferredPosition: 'left' | 'right';
 }
 
 interface RegisterResponse {
