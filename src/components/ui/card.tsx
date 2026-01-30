@@ -3,7 +3,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props} />
+  <div 
+    ref={ref} 
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-card transition-all duration-300 hover:shadow-card-hover",
+      className
+    )} 
+    {...props} 
+  />
 ));
 Card.displayName = "Card";
 
@@ -40,4 +47,34 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 );
 CardFooter.displayName = "CardFooter";
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+// Interactive card variant with lift effect
+const CardInteractive = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div 
+      ref={ref} 
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-card card-lift cursor-pointer",
+        className
+      )} 
+      {...props} 
+    />
+  ),
+);
+CardInteractive.displayName = "CardInteractive";
+
+// Glass card variant
+const CardGlass = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div 
+      ref={ref} 
+      className={cn(
+        "rounded-lg border glass text-card-foreground shadow-card transition-all duration-300",
+        className
+      )} 
+      {...props} 
+    />
+  ),
+);
+CardGlass.displayName = "CardGlass";
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, CardInteractive, CardGlass };
