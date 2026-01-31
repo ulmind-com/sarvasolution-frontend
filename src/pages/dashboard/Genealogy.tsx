@@ -1,7 +1,7 @@
-import GenealogyTree from '@/components/genealogy/GenealogyTree';
+import D3GenealogyTree from '@/components/genealogy/D3GenealogyTree';
 
 const Genealogy = () => {
-  return <GenealogyTree />;
+  return <D3GenealogyTree />;
 };
 
 export default Genealogy;
