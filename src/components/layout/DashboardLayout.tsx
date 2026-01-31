@@ -29,6 +29,7 @@ import {
   Menu,
   Network,
   IndianRupee,
+  Award,
   FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -50,6 +51,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { path: '/dashboard', label: 'Overview', icon: Home },
   { path: '/dashboard/genealogy', label: 'Genealogy', icon: Network },
+  { path: '/dashboard/welcome-letter', label: 'Welcome Letter', icon: Award },
   { path: '/dashboard/store', label: 'Product Store', icon: ShoppingBag },
   { path: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { 
