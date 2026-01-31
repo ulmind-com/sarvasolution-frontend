@@ -20,7 +20,15 @@ export interface TreeNodeData {
   joiningDate?: string;
   totalDownline?: number;
   parentId?: string;
+  sponsorId?: string;
   directSponsors?: number;
+  isActive?: boolean;
+  status?: string;
+  // Direct Business Stats
+  leftDirectActive?: number;
+  leftDirectInactive?: number;
+  rightDirectActive?: number;
+  rightDirectInactive?: number;
   left: TreeNodeData | null;
   right: TreeNodeData | null;
 }
