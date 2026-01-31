@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, RefreshCw, Users, ArrowUp, Home } from 'lucide-react';
+import { AlertCircle, RefreshCw, Users, ArrowUp, Home, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import TreeNode, { TreeNodeData } from './TreeNode';
@@ -113,6 +115,125 @@ const NavigationBreadcrumb = ({
         </div>
       ))}
     </motion.div>
+  );
+};
+
+// Custom Depth Input Control Component
+const DepthControlCard = ({ 
+  depth, 
+  onApply 
+}: { 
+  depth: number; 
+  onApply: (depth: number) => void;
+}) => {
+  const [inputValue, setInputValue] = useState(depth.toString());
+  const [warning, setWarning] = useState<string | null>(null);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue)) {
+      setWarning(null);
+    } else if (numValue > 10) {
+      setWarning('Maximum depth is 10 levels');
+    } else if (numValue < 1) {
+      setWarning('Minimum depth is 1 level');
+    } else {
+      setWarning(null);
+    }
+  };
+
+  const handleApply = () => {
+    let numValue = parseInt(inputValue, 10);
+    
+    if (isNaN(numValue) || numValue < 1) {
+      numValue = 1;
+    } else if (numValue > 10) {
+      numValue = 10;
+    }
+    
+    setInputValue(numValue.toString());
+    setWarning(null);
+    onApply(numValue);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleApply();
+    }
+  };
+
+  return (
+    <Card className="border-border">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Settings2 className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium text-foreground">Tree Depth Control</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1 max-w-[180px]">
+            <Label htmlFor="tree-depth" className="text-xs text-muted-foreground mb-1.5 block">
+              Tree Depth:
+            </Label>
+            <Input
+              id="tree-depth"
+              type="number"
+              min={1}
+              max={10}
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              className={cn(
+                'h-9',
+                warning && 'border-destructive focus-visible:ring-destructive/50'
+              )}
+            />
+          </div>
+          <Button
+            onClick={handleApply}
+            size="sm"
+            className="h-9 px-4"
+          >
+            Apply
+          </Button>
+        </div>
+        
+        {warning ? (
+          <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {warning}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground mt-2">
+            Enter 1-10 levels. Higher depth shows more generations but may affect performance.
+          </p>
+        )}
+        
+        {/* Quick select buttons */}
+        <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border">
+          <span className="text-xs text-muted-foreground mr-1 self-center">Quick:</span>
+          {[2, 3, 5, 7, 10].map((d) => (
+            <Button
+              key={d}
+              variant={depth === d ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => {
+                setInputValue(d.toString());
+                setWarning(null);
+                onApply(d);
+              }}
+              className="h-7 px-2 text-xs"
+            >
+              {d}
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
@@ -296,32 +417,7 @@ const GenealogyTree = () => {
       </Card>
 
       {/* Depth Control */}
-      <Card className="border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-foreground">Tree Depth</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {[2, 3, 4, 5].map((d) => (
-              <Button
-                key={d}
-                variant={depth === d ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDepth(d)}
-                className={cn(
-                  'min-w-[60px]',
-                  depth === d && 'shadow-md shadow-primary/30'
-                )}
-              >
-                {d} Levels
-              </Button>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Higher depth shows more generations but may affect performance
-          </p>
-        </CardContent>
-      </Card>
+      <DepthControlCard depth={depth} onApply={setDepth} />
 
       {/* Rank Legend */}
       <Card className="border-border">
