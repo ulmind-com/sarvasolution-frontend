@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import Overview from "./pages/dashboard/Overview";
 import Genealogy from "./pages/dashboard/Genealogy";
+import DirectTeam from "./pages/dashboard/DirectTeam";
 import Store from "./pages/dashboard/Store";
 import Wallet from "./pages/dashboard/Wallet";
 import UpdateProfile from "./pages/dashboard/UpdateProfile";
@@ -69,6 +70,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <Genealogy />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/direct-team" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <DirectTeam />
           </DashboardLayout>
         </ProtectedRoute>
       } />
