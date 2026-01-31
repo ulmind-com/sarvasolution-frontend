@@ -289,7 +289,6 @@ const UserDetail = () => {
             fullName: user.fullName,
             email: user.email,
             phone: user.phone,
-            panCardNumber: user.kyc?.panCardNumber || '',
             rank: user.rank,
             status: user.status as 'active' | 'inactive' | 'blocked',
             joiningPackage: user.joiningPackage,
