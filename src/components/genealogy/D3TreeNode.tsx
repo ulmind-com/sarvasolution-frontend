@@ -317,19 +317,17 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
   // Determine active/inactive status
   const isActive = data.isActive ?? (data.status?.toLowerCase() === 'active');
 
-  // Status-based styles - Strong Green/Red glow for instant visual assessment
+  // Status-based styles - INTENSE Neon glow for instant visual assessment
   const statusStyles = isActive
     ? {
         border: 'border-chart-2',
-        ring: 'ring-2 ring-chart-2/50',
-        shadow: 'shadow-[0_0_20px_rgba(34,197,94,0.7)]',
-        nameBg: 'bg-chart-2',
+        ring: 'ring-2 ring-chart-2/70',
+        shadow: 'shadow-[0_0_25px_rgba(34,197,94,0.9)]', // Strong green glow
       }
     : {
         border: 'border-destructive',
-        ring: 'ring-2 ring-destructive/50',
-        shadow: 'shadow-[0_0_20px_rgba(239,68,68,0.7)]',
-        nameBg: 'bg-destructive',
+        ring: 'ring-2 ring-destructive/70',
+        shadow: 'shadow-[0_0_25px_rgba(239,68,68,0.9)]', // Strong red glow
       };
 
   return (
@@ -359,23 +357,23 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           />
         )}
         
-        {/* Avatar with status-based glow effect */}
+        {/* Avatar with status-based STRONG glow effect */}
         <div className="relative transition-shadow duration-300">
           <Avatar
             className={cn(
-              'w-14 h-14 border-4 transition-all duration-300',
+              'w-16 h-16 border-4 transition-all duration-300 bg-background',
               isHighlighted 
-                ? 'border-yellow-400 ring-4 ring-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
+                ? 'border-yellow-400 ring-4 ring-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.9)]' 
                 : cn(
                     statusStyles.border,
                     statusStyles.ring,
                     statusStyles.shadow,
-                    'group-hover:shadow-xl'
+                    'group-hover:scale-105'
                   )
             )}
           >
             <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
-            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-xs">
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-sm">
               {initials}
             </AvatarFallback>
           </Avatar>
@@ -388,25 +386,18 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           )}
         </div>
 
-        {/* Name Label with status color */}
-        <div className="mt-1.5 text-center">
-          <div className={cn(
-            'rounded-full px-2.5 py-0.5 shadow-lg transition-all duration-300',
-            isHighlighted 
-              ? 'bg-yellow-500 ring-2 ring-yellow-300' 
-              : statusStyles.nameBg
-          )}>
-            <p className="text-[10px] font-bold text-primary-foreground truncate max-w-[80px]">
+        {/* Name Label - FIXED: Dark text on light background for readability */}
+        <div className="mt-2.5 text-center">
+          <div className="bg-background/95 backdrop-blur-sm border border-border rounded-full px-3 py-1 shadow-md">
+            <p className="text-[12px] font-extrabold text-foreground tracking-wide truncate max-w-[90px]">
               {name.split(' ')[0]}
             </p>
           </div>
           
           {/* Member ID */}
-          <div className="mt-1 backdrop-blur-md bg-background/80 border border-border/50 rounded px-1.5 py-0.5">
-            <p className="text-[9px] text-muted-foreground font-mono">
-              {data.memberId}
-            </p>
-          </div>
+          <p className="mt-1 text-[9px] font-bold text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full">
+            {data.memberId}
+          </p>
           
           {/* Rank Badge */}
           <Badge
