@@ -166,7 +166,7 @@ const HoverTooltip = ({
 
   return (
     <div 
-      className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200"
+      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-[9999] pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200"
       style={{ minWidth: '260px' }}
     >
       <div className="bg-slate-900 backdrop-blur-lg border border-slate-700 shadow-2xl rounded-xl overflow-hidden text-slate-100">
@@ -188,8 +188,8 @@ const HoverTooltip = ({
               className={cn(
                 'text-[9px] px-2 py-0.5',
                 isInactive 
-                  ? 'bg-destructive/20 text-destructive border-destructive/30' 
-                  : 'bg-chart-5/20 text-chart-5 border-chart-5/30'
+                  ? 'bg-red-500/20 text-red-400 border-red-500/30' 
+                  : 'bg-green-500/20 text-green-400 border-green-500/30'
               )}
               variant="outline"
             >
@@ -247,12 +247,12 @@ const HoverTooltip = ({
                 <p className="text-[10px] font-medium text-slate-300 mb-1.5">Left Leg</p>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-chart-5" />
-                    <span className="text-chart-5 font-semibold">{data.leftDirectActive ?? 0}</span>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-green-400 font-semibold">{data.leftDirectActive ?? 0}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <XCircle className="h-3.5 w-3.5 text-destructive" />
-                    <span className="text-destructive font-semibold">{data.leftDirectInactive ?? 0}</span>
+                    <XCircle className="h-3.5 w-3.5 text-red-500" />
+                    <span className="text-red-400 font-semibold">{data.leftDirectInactive ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -262,12 +262,12 @@ const HoverTooltip = ({
                 <p className="text-[10px] font-medium text-slate-300 mb-1.5">Right Leg</p>
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-chart-5" />
-                    <span className="text-chart-5 font-semibold">{data.rightDirectActive ?? 0}</span>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    <span className="text-green-400 font-semibold">{data.rightDirectActive ?? 0}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <XCircle className="h-3.5 w-3.5 text-destructive" />
-                    <span className="text-destructive font-semibold">{data.rightDirectInactive ?? 0}</span>
+                    <XCircle className="h-3.5 w-3.5 text-red-500" />
+                    <span className="text-red-400 font-semibold">{data.rightDirectInactive ?? 0}</span>
                   </div>
                 </div>
               </div>
@@ -294,8 +294,8 @@ const HoverTooltip = ({
         </div>
       </div>
 
-      {/* Arrow pointer */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-3 h-3 bg-slate-900 border-l border-b border-slate-700 rotate-45" />
+      {/* Arrow pointer - now pointing down */}
+      <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1.5 w-3 h-3 bg-slate-900 border-r border-b border-slate-700 rotate-45" />
     </div>
   );
 };
@@ -320,12 +320,12 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
 
   const avatarUrl = data.profileImage || data.avatar;
   
-  // Determine status-based styling
+  // Determine status-based styling - strict Green vs Red
   const isInactive = data.status?.toLowerCase() === 'inactive';
-  const statusBorderColor = isInactive ? 'border-destructive' : 'border-chart-5';
+  const statusBorderColor = isInactive ? 'border-red-500' : 'border-green-500';
   const statusShadow = isInactive 
-    ? 'shadow-[0_0_12px_rgba(var(--destructive),0.4)]' 
-    : 'shadow-[0_0_12px_rgba(var(--chart-5),0.4)]';
+    ? 'shadow-[0_0_12px_rgba(239,68,68,0.5)]' 
+    : 'shadow-[0_0_12px_rgba(34,197,94,0.5)]';
 
   return (
     <div 
@@ -373,11 +373,11 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
             </AvatarFallback>
           </Avatar>
           
-          {/* Status indicator dot */}
+          {/* Status indicator dot - strict Green vs Red */}
           <div 
             className={cn(
               'absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background',
-              isInactive ? 'bg-destructive' : 'bg-chart-5'
+              isInactive ? 'bg-red-500' : 'bg-green-500'
             )}
           />
           
