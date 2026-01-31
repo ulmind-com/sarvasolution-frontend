@@ -63,7 +63,7 @@ const WelcomeLetter = () => {
     );
   }
 
-  const salutation = user.fullName?.startsWith('Mrs') || user.fullName?.startsWith('Ms') ? 'Ms.' : 'Mr.';
+  const salutation = 'Dear';
 
   return (
     <div className="space-y-6">
