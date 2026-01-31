@@ -29,20 +29,20 @@ const fetchTreeData = async (depth: number = 3, memberId?: string): Promise<Tree
 const TreeLegend = () => (
   <div className="flex flex-wrap gap-3 text-xs">
     <div className="flex items-center gap-1.5">
-      <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-primary/50" />
+      <div className="w-3 h-3 rounded-full bg-chart-2 ring-2 ring-chart-2/50 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
       <span className="text-muted-foreground">Active</span>
+    </div>
+    <div className="flex items-center gap-1.5">
+      <div className="w-3 h-3 rounded-full bg-destructive ring-2 ring-destructive/50 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+      <span className="text-muted-foreground">Inactive</span>
     </div>
     <div className="flex items-center gap-1.5">
       <div className="w-3 h-3 rounded-full border-2 border-dashed border-border bg-muted/30" />
       <span className="text-muted-foreground">Empty</span>
     </div>
     <div className="flex items-center gap-1.5">
-      <div className="w-3 h-3 rounded-full bg-chart-4 ring-2 ring-chart-4/50" />
-      <span className="text-muted-foreground">Crown</span>
-    </div>
-    <div className="flex items-center gap-1.5">
-      <div className="w-3 h-3 rounded-full bg-chart-2 ring-2 ring-chart-2/50" />
-      <span className="text-muted-foreground">Gold</span>
+      <div className="w-3 h-3 rounded-full bg-yellow-400 ring-2 ring-yellow-300" />
+      <span className="text-muted-foreground">Search Match</span>
     </div>
   </div>
 );

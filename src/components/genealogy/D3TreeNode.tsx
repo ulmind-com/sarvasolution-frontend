@@ -304,7 +304,7 @@ interface ActiveD3NodeProps {
 
 export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlighted }: ActiveD3NodeProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { ring, badge, glow } = getRankStyles(data.rank);
+  const { badge } = getRankStyles(data.rank);
   const initials = data.fullName
     .split(' ')
     .map((n) => n[0])
@@ -313,6 +313,24 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
     .toUpperCase();
 
   const avatarUrl = data.profileImage || data.avatar;
+  
+  // Determine active/inactive status
+  const isActive = data.isActive ?? (data.status?.toLowerCase() === 'active');
+
+  // Status-based styles - Strong Green/Red glow for instant visual assessment
+  const statusStyles = isActive
+    ? {
+        border: 'border-chart-2',
+        ring: 'ring-2 ring-chart-2/50',
+        shadow: 'shadow-[0_0_20px_rgba(34,197,94,0.7)]',
+        nameBg: 'bg-chart-2',
+      }
+    : {
+        border: 'border-destructive',
+        ring: 'ring-2 ring-destructive/50',
+        shadow: 'shadow-[0_0_20px_rgba(239,68,68,0.7)]',
+        nameBg: 'bg-destructive',
+      };
 
   return (
     <div 
@@ -329,7 +347,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
             : 'hover:scale-105'
         )}
       >
-        {/* Highlight glow effect */}
+        {/* Highlight glow effect for search */}
         {isHighlighted && (
           <div 
             className="absolute -inset-3 rounded-2xl animate-pulse pointer-events-none"
@@ -341,17 +359,19 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           />
         )}
         
-        {/* Avatar with glow effect */}
-        <div className={cn('relative', glow && 'transition-shadow duration-300')}>
+        {/* Avatar with status-based glow effect */}
+        <div className="relative transition-shadow duration-300">
           <Avatar
             className={cn(
-              'w-14 h-14 border-2 transition-all duration-300',
+              'w-14 h-14 border-4 transition-all duration-300',
               isHighlighted 
-                ? 'border-yellow-400 ring-4 ring-yellow-400' 
-                : cn('border-background', ring),
-              isHighlighted 
-                ? 'shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
-                : cn(glow, 'group-hover:shadow-xl')
+                ? 'border-yellow-400 ring-4 ring-yellow-400 shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
+                : cn(
+                    statusStyles.border,
+                    statusStyles.ring,
+                    statusStyles.shadow,
+                    'group-hover:shadow-xl'
+                  )
             )}
           >
             <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
@@ -368,21 +388,27 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           )}
         </div>
 
-        {/* Glassmorphism Info Badge */}
+        {/* Name Label with status color */}
         <div className="mt-1.5 text-center">
           <div className={cn(
-            'backdrop-blur-md border rounded-lg px-2 py-1 shadow-sm transition-all duration-300',
+            'rounded-full px-2.5 py-0.5 shadow-lg transition-all duration-300',
             isHighlighted 
-              ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-300' 
-              : 'bg-background/90 border-border/50'
+              ? 'bg-yellow-500 ring-2 ring-yellow-300' 
+              : statusStyles.nameBg
           )}>
-            <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
+            <p className="text-[10px] font-bold text-primary-foreground truncate max-w-[80px]">
               {name.split(' ')[0]}
             </p>
+          </div>
+          
+          {/* Member ID */}
+          <div className="mt-1 backdrop-blur-md bg-background/80 border border-border/50 rounded px-1.5 py-0.5">
             <p className="text-[9px] text-muted-foreground font-mono">
               {data.memberId}
             </p>
           </div>
+          
+          {/* Rank Badge */}
           <Badge
             variant="outline"
             className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', badge)}
