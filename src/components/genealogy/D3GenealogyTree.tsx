@@ -29,12 +29,8 @@ const fetchTreeData = async (depth: number = 3, memberId?: string): Promise<Tree
 const TreeLegend = () => (
   <div className="flex flex-wrap gap-3 text-xs">
     <div className="flex items-center gap-1.5">
-      <div className="w-3 h-3 rounded-full bg-chart-5 ring-2 ring-chart-5/50" />
+      <div className="w-3 h-3 rounded-full bg-primary ring-2 ring-primary/50" />
       <span className="text-muted-foreground">Active</span>
-    </div>
-    <div className="flex items-center gap-1.5">
-      <div className="w-3 h-3 rounded-full bg-destructive ring-2 ring-destructive/50" />
-      <span className="text-muted-foreground">Inactive</span>
     </div>
     <div className="flex items-center gap-1.5">
       <div className="w-3 h-3 rounded-full border-2 border-dashed border-border bg-muted/30" />

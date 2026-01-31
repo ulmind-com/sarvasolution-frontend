@@ -1,7 +1,7 @@
-import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award, CheckCircle2, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import type { TreeNodeData } from './TreeNode';
 
@@ -20,13 +20,6 @@ export interface D3TreeNodeDatum {
     parentId?: string;
     directSponsors?: number;
     isEmpty?: boolean;
-    // New fields for status and team stats
-    sponsorId?: string;
-    status?: 'active' | 'inactive';
-    leftDirectActive?: number;
-    leftDirectInactive?: number;
-    rightDirectActive?: number;
-    rightDirectInactive?: number;
   };
   children?: D3TreeNodeDatum[];
 }
@@ -68,13 +61,6 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       parentId: node.parentId,
       directSponsors: node.directSponsors,
       isEmpty: false,
-      // New fields for status and team stats
-      sponsorId: node.sponsorId,
-      status: node.status,
-      leftDirectActive: node.leftDirectActive,
-      leftDirectInactive: node.leftDirectInactive,
-      rightDirectActive: node.rightDirectActive,
-      rightDirectInactive: node.rightDirectInactive,
     },
     children: children.length > 0 ? children : undefined,
   };
@@ -142,13 +128,15 @@ export const EmptyD3Node = () => (
   </div>
 );
 
-// Tooltip Content component for HoverCard - rendered via Portal
-const TooltipContent = ({ 
+// Custom Hover Tooltip (works inside SVG foreignObject)
+const HoverTooltip = ({ 
   data, 
-  name 
+  name, 
+  isVisible 
 }: { 
   data: D3TreeNodeDatum['attributes']; 
   name: string; 
+  isVisible: boolean;
 }) => {
   const { ring, badge } = getRankStyles(data.rank);
   const initials = data.fullName
@@ -158,132 +146,96 @@ const TooltipContent = ({
     .substring(0, 2)
     .toUpperCase();
   const avatarUrl = data.profileImage || data.avatar;
-  const isInactive = data.status?.toLowerCase() === 'inactive';
+
+  if (!isVisible) return null;
 
   return (
-    <div className="bg-slate-900 backdrop-blur-lg border border-slate-700 shadow-2xl rounded-xl overflow-hidden text-slate-100 min-w-[260px]">
-      {/* Header with gradient */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-3 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <Avatar className={cn('w-10 h-10', ring)}>
-            <AvatarImage src={avatarUrl} alt={data.fullName} />
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <p className="font-bold text-slate-50 text-sm">{name}</p>
-            <p className="text-[10px] text-slate-400 font-mono">{data.memberId}</p>
+    <div 
+      className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200"
+      style={{ minWidth: '220px' }}
+    >
+      <div className="bg-popover/98 backdrop-blur-lg border border-border shadow-2xl rounded-xl overflow-hidden">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-primary/10 to-transparent p-3 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <Avatar className={cn('w-10 h-10', ring)}>
+              <AvatarImage src={avatarUrl} alt={data.fullName} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-bold text-foreground text-sm">{name}</p>
+              <Badge className={cn('text-[9px] mt-0.5', badge)}>{data.rank}</Badge>
+            </div>
           </div>
-          {/* Status Badge */}
-          <Badge 
-            className={cn(
-              'text-[9px] px-2 py-0.5',
-              isInactive 
-                ? 'bg-red-500/20 text-red-400 border-red-500/30' 
-                : 'bg-green-500/20 text-green-400 border-green-500/30'
-            )}
-            variant="outline"
-          >
-            {isInactive ? 'Inactive' : 'Active'}
-          </Badge>
         </div>
-      </div>
 
-      {/* Details Grid */}
-      <div className="p-3 space-y-2 text-xs">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
+        {/* Details Grid */}
+        <div className="p-3 space-y-2 text-xs">
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
             <User className="h-3.5 w-3.5 text-primary" />
-            <span className="text-slate-400">Sponsor</span>
-          </div>
-          <div className="py-1 border-b border-slate-700/50 text-right">
-            <span className="font-mono font-semibold text-slate-200">{data.sponsorId || data.parentId || 'N/A'}</span>
+            <span className="text-muted-foreground flex-1">Member ID</span>
+            <span className="font-mono font-semibold text-foreground">{data.memberId}</span>
           </div>
 
-          <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
-            <Calendar className="h-3.5 w-3.5 text-chart-1" />
-            <span className="text-slate-400">Joined</span>
-          </div>
-          <div className="py-1 border-b border-slate-700/50 text-right">
-            <span className="font-medium text-slate-200">
-              {data.joiningDate ? new Date(data.joiningDate).toLocaleDateString() : 'N/A'}
-            </span>
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <Users className="h-3.5 w-3.5 text-chart-2" />
+            <span className="text-muted-foreground flex-1">Parent ID</span>
+            <span className="font-mono font-semibold text-primary">{data.parentId || 'Root'}</span>
           </div>
 
-          <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
-            <Award className="h-3.5 w-3.5 text-chart-4" />
-            <span className="text-slate-400">Rank</span>
-          </div>
-          <div className="py-1 border-b border-slate-700/50 text-right">
-            <Badge className={cn('text-[9px] px-1.5', badge)}>{data.rank}</Badge>
-          </div>
-
-          <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
             <MapPin className="h-3.5 w-3.5 text-chart-3" />
-            <span className="text-slate-400">Position</span>
-          </div>
-          <div className="py-1 border-b border-slate-700/50 text-right">
-            <Badge variant="outline" className="text-[9px] capitalize font-medium border-slate-600 text-slate-300">
+            <span className="text-muted-foreground flex-1">Position</span>
+            <Badge variant="outline" className="text-[9px] capitalize font-medium">
               {data.position === 'root' ? 'Root' : `${data.position} Leg`}
             </Badge>
           </div>
-        </div>
 
-        {/* Team Stats Section */}
-        <div className="pt-2 mt-2 border-t border-slate-700">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Direct Business</p>
-          <div className="grid grid-cols-2 gap-3">
-            {/* Left Leg Stats */}
-            <div className="bg-slate-800/50 rounded-lg p-2">
-              <p className="text-[10px] font-medium text-slate-300 mb-1.5">Left Leg</p>
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                  <span className="text-green-400 font-semibold">{data.leftDirectActive ?? 0}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <XCircle className="h-3.5 w-3.5 text-red-500" />
-                  <span className="text-red-400 font-semibold">{data.leftDirectInactive ?? 0}</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Right Leg Stats */}
-            <div className="bg-slate-800/50 rounded-lg p-2">
-              <p className="text-[10px] font-medium text-slate-300 mb-1.5">Right Leg</p>
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                  <span className="text-green-400 font-semibold">{data.rightDirectActive ?? 0}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <XCircle className="h-3.5 w-3.5 text-red-500" />
-                  <span className="text-red-400 font-semibold">{data.rightDirectInactive ?? 0}</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <Award className="h-3.5 w-3.5 text-chart-4" />
+            <span className="text-muted-foreground flex-1">Rank</span>
+            <span className="font-semibold text-foreground">{data.rank}</span>
           </div>
-        </div>
 
-        {/* Total Downline */}
-        {data.totalDownline !== undefined && (
-          <div className="flex items-center justify-between pt-2 border-t border-slate-700">
-            <div className="flex items-center gap-2">
+          {data.joiningDate && (
+            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+              <Calendar className="h-3.5 w-3.5 text-chart-1" />
+              <span className="text-muted-foreground flex-1">Joined</span>
+              <span className="font-medium text-foreground">
+                {new Date(data.joiningDate).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+
+          {data.directSponsors !== undefined && (
+            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+              <Users className="h-3.5 w-3.5 text-primary" />
+              <span className="text-muted-foreground flex-1">Direct Sponsors</span>
+              <span className="font-bold text-foreground">{data.directSponsors}</span>
+            </div>
+          )}
+
+          {data.totalDownline !== undefined && (
+            <div className="flex items-center gap-2 py-1.5">
               <Users className="h-3.5 w-3.5 text-chart-2" />
-              <span className="text-slate-400">Total Downline</span>
+              <span className="text-muted-foreground flex-1">Total Downline</span>
+              <span className="font-bold text-foreground">{data.totalDownline}</span>
             </div>
-            <span className="font-bold text-slate-100">{data.totalDownline}</span>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="px-3 py-2 bg-muted/30 border-t border-border/30">
+          <p className="text-[10px] text-muted-foreground text-center">
+            Click to view this member's network
+          </p>
+        </div>
       </div>
 
-      {/* Footer hint */}
-      <div className="px-3 py-2 bg-slate-800/50 border-t border-slate-700">
-        <p className="text-[10px] text-slate-500 text-center">
-          Click to view this member's network
-        </p>
-      </div>
+      {/* Arrow pointer */}
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-3 h-3 bg-popover border-l border-b border-border rotate-45" />
     </div>
   );
 };
@@ -297,7 +249,8 @@ interface ActiveD3NodeProps {
 }
 
 export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlighted }: ActiveD3NodeProps) => {
-  const { ring, badge } = getRankStyles(data.rank);
+  const [isHovered, setIsHovered] = useState(false);
+  const { ring, badge, glow } = getRankStyles(data.rank);
   const initials = data.fullName
     .split(' ')
     .map((n) => n[0])
@@ -306,110 +259,87 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
     .toUpperCase();
 
   const avatarUrl = data.profileImage || data.avatar;
-  
-  // Determine status-based styling - strict Green vs Red
-  const isInactive = data.status?.toLowerCase() === 'inactive';
-  const statusBorderColor = isInactive ? 'border-red-500' : 'border-green-500';
-  const statusShadow = isInactive 
-    ? 'shadow-[0_0_12px_rgba(239,68,68,0.5)]' 
-    : 'shadow-[0_0_12px_rgba(34,197,94,0.5)]';
 
   return (
-    <HoverCard openDelay={100} closeDelay={50}>
-      <HoverCardTrigger asChild>
-        <div
-          onClick={() => onNodeClick?.(data.memberId)}
-          className={cn(
-            'flex flex-col items-center cursor-pointer group transition-all duration-300',
-            isHighlighted 
-              ? 'scale-110 z-50' 
-              : 'hover:scale-105'
-          )}
-        >
-          {/* Highlight glow effect for search */}
-          {isHighlighted && (
-            <div 
-              className="absolute -inset-3 rounded-2xl animate-pulse pointer-events-none"
-              style={{ 
-                background: 'linear-gradient(135deg, rgba(250,204,21,0.4), rgba(234,179,8,0.3))',
-                boxShadow: '0 0 30px rgba(250,204,21,0.6), 0 0 60px rgba(250,204,21,0.3)',
-                zIndex: -1
-              }} 
-            />
-          )}
-          
-          {/* Avatar with status-based glow effect */}
-          <div className={cn('relative', 'transition-shadow duration-300')}>
-            <Avatar
-              className={cn(
-                'w-14 h-14 border-2 transition-all duration-300',
-                isHighlighted 
-                  ? 'border-yellow-400 ring-4 ring-yellow-400' 
-                  : cn('border-background', ring),
-                isHighlighted 
-                  ? 'shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
-                  : cn(statusShadow, 'group-hover:shadow-xl')
-              )}
-            >
-              <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
-              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-xs">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            
-            {/* Status indicator dot - strict Green vs Red */}
-            <div 
-              className={cn(
-                'absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background',
-                isInactive ? 'bg-red-500' : 'bg-green-500'
-              )}
-            />
-            
-            {/* Drill-down indicator */}
-            {hasChildren && (
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-
-          {/* Glassmorphism Info Badge with status border */}
-          <div className="mt-1.5 text-center">
-            <div className={cn(
-              'backdrop-blur-md border-2 rounded-lg px-2 py-1 shadow-sm transition-all duration-300',
-              isHighlighted 
-                ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-300' 
-                : cn('bg-background/90', statusBorderColor)
-            )}>
-              <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
-                {name.split(' ')[0]}
-              </p>
-              <p className="text-[9px] text-muted-foreground font-mono">
-                {data.memberId}
-              </p>
-            </div>
-            <Badge
-              variant="outline"
-              className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', badge)}
-            >
-              {data.rank}
-            </Badge>
-          </div>
-        </div>
-      </HoverCardTrigger>
-
-      {/* HoverCardContent renders via Portal - floats above SVG stacking context */}
-      <HoverCardContent 
-        side="right" 
-        sideOffset={16} 
-        align="start"
-        alignOffset={-20}
-        collisionPadding={20}
-        className="p-0 border-0 bg-transparent shadow-none w-auto"
-        style={{ zIndex: 99999 }}
+    <div 
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div
+        onClick={() => onNodeClick?.(data.memberId)}
+        className={cn(
+          'flex flex-col items-center cursor-pointer group transition-all duration-300',
+          isHighlighted 
+            ? 'scale-110 z-50' 
+            : 'hover:scale-105'
+        )}
       >
-        <TooltipContent data={data} name={name} />
-      </HoverCardContent>
-    </HoverCard>
+        {/* Highlight glow effect */}
+        {isHighlighted && (
+          <div 
+            className="absolute -inset-3 rounded-2xl animate-pulse pointer-events-none"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(250,204,21,0.4), rgba(234,179,8,0.3))',
+              boxShadow: '0 0 30px rgba(250,204,21,0.6), 0 0 60px rgba(250,204,21,0.3)',
+              zIndex: -1
+            }} 
+          />
+        )}
+        
+        {/* Avatar with glow effect */}
+        <div className={cn('relative', glow && 'transition-shadow duration-300')}>
+          <Avatar
+            className={cn(
+              'w-14 h-14 border-2 transition-all duration-300',
+              isHighlighted 
+                ? 'border-yellow-400 ring-4 ring-yellow-400' 
+                : cn('border-background', ring),
+              isHighlighted 
+                ? 'shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
+                : cn(glow, 'group-hover:shadow-xl')
+            )}
+          >
+            <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-xs">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Drill-down indicator */}
+          {hasChildren && (
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+
+        {/* Glassmorphism Info Badge */}
+        <div className="mt-1.5 text-center">
+          <div className={cn(
+            'backdrop-blur-md border rounded-lg px-2 py-1 shadow-sm transition-all duration-300',
+            isHighlighted 
+              ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-300' 
+              : 'bg-background/90 border-border/50'
+          )}>
+            <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
+              {name.split(' ')[0]}
+            </p>
+            <p className="text-[9px] text-muted-foreground font-mono">
+              {data.memberId}
+            </p>
+          </div>
+          <Badge
+            variant="outline"
+            className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', badge)}
+          >
+            {data.rank}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Custom Hover Tooltip */}
+      <HoverTooltip data={data} name={name} isVisible={isHovered} />
+    </div>
   );
 };

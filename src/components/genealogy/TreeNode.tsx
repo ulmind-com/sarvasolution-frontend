@@ -21,13 +21,6 @@ export interface TreeNodeData {
   totalDownline?: number;
   parentId?: string;
   directSponsors?: number;
-  // New fields for status and team stats
-  sponsorId?: string;
-  status?: 'active' | 'inactive';
-  leftDirectActive?: number;
-  leftDirectInactive?: number;
-  rightDirectActive?: number;
-  rightDirectInactive?: number;
   left: TreeNodeData | null;
   right: TreeNodeData | null;
 }
