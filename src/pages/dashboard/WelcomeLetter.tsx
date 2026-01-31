@@ -1,12 +1,10 @@
 import { useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Download, Loader2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { format } from 'date-fns';
 
 const WelcomeLetter = () => {
   const { user } = useAuthStore();
@@ -16,7 +14,8 @@ const WelcomeLetter = () => {
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'N/A';
     try {
-      return format(new Date(dateString), 'dd/MM/yyyy');
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB'); // DD/MM/YYYY
     } catch {
       return 'N/A';
     }
@@ -27,19 +26,26 @@ const WelcomeLetter = () => {
     
     setIsGenerating(true);
     try {
-      const canvas = await html2canvas(letterRef.current, { 
-        scale: 2,
+      // Force explicit A4 dimensions for capture
+      const element = letterRef.current;
+      
+      const canvas = await html2canvas(element, { 
+        scale: 3, // High resolution (300 DPI feel)
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: 794, // A4 width in pixels at 96 DPI
+        windowHeight: 1123 // A4 height in pixels at 96 DPI
       });
       
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      // Calculate responsive height to fit A4 exactly
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Welcome_Letter_${user?.memberId || 'User'}.pdf`);
     } catch (error) {
       console.error('PDF generation failed:', error);
@@ -67,11 +73,16 @@ const WelcomeLetter = () => {
           <h1 className="text-2xl font-bold text-foreground">Welcome Letter</h1>
           <p className="text-muted-foreground text-sm">Your official joining confirmation document</p>
         </div>
-        <Button onClick={downloadPDF} disabled={isGenerating} className="gap-2">
+        <Button 
+          onClick={downloadPDF} 
+          disabled={isGenerating} 
+          className="gap-2"
+          style={{ backgroundColor: '#dc2626' }}
+        >
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Generating...
+              Generating PDF...
             </>
           ) : (
             <>
@@ -82,157 +93,229 @@ const WelcomeLetter = () => {
         </Button>
       </div>
 
-      {/* A4 Letter Container */}
-      <Card className="overflow-hidden shadow-2xl">
+      {/* A4 Letter Container - Scrollable Preview */}
+      <div className="overflow-x-auto pb-4">
         <div 
           ref={letterRef}
           id="welcome-letter-content"
-          className="bg-white text-gray-900 relative"
+          className="relative mx-auto"
           style={{ 
             width: '210mm', 
             minHeight: '297mm',
-            maxWidth: '100%',
-            margin: '0 auto',
-            padding: '0',
-            fontFamily: 'Georgia, serif'
+            backgroundColor: '#ffffff',
+            color: '#1a1a1a',
+            fontFamily: 'Georgia, "Times New Roman", serif',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            borderRadius: '4px',
+            overflow: 'hidden'
           }}
         >
-          {/* Header Geometric Shapes */}
-          <div className="relative h-32 overflow-hidden">
-            {/* Red Shape - Left */}
-            <div 
-              className="absolute top-0 left-0 w-48 h-32 bg-red-600"
-              style={{ 
-                clipPath: 'polygon(0 0, 100% 0, 70% 100%, 0 100%)',
-              }}
-            />
-            {/* Green Shape - Right of Red */}
-            <div 
-              className="absolute top-0 left-24 w-40 h-32 bg-green-600"
-              style={{ 
-                clipPath: 'polygon(30% 0, 100% 0, 70% 100%, 0 100%)',
-              }}
-            />
-            {/* Additional accent */}
-            <div 
-              className="absolute top-0 right-0 w-32 h-20 bg-green-600"
-              style={{ 
-                clipPath: 'polygon(30% 0, 100% 0, 100% 100%, 0 100%)',
-              }}
-            />
-          </div>
-
-          {/* Logo */}
-          <div className="flex justify-center -mt-16 relative z-10">
+          {/* Watermark - Faint Logo in Center */}
+          <div 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            style={{ zIndex: 1 }}
+          >
             <img 
               src="https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png" 
-              alt="Sarva Solution Vision" 
-              className="h-20 w-auto bg-white p-2 rounded-lg shadow-md"
+              alt=""
+              style={{ 
+                width: '300px',
+                height: 'auto',
+                opacity: 0.05
+              }}
             />
           </div>
 
-          {/* Company Header */}
-          <div className="text-center px-8 mt-4 space-y-1">
-            <h2 className="text-xl font-bold text-gray-900 tracking-wide">
+          {/* Header Geometric Shapes */}
+          <div className="relative" style={{ height: '100px', overflow: 'hidden' }}>
+            {/* Green Shape - Top Left (Primary) */}
+            <div 
+              style={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '65%',
+                height: '100px',
+                backgroundColor: '#16a34a',
+                clipPath: 'polygon(0 0, 100% 0, 85% 100%, 0 100%)',
+              }}
+            />
+            {/* Red Shape - Top Right (Overlapping) */}
+            <div 
+              style={{ 
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '50%',
+                height: '100px',
+                backgroundColor: '#dc2626',
+                clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 0 100%)',
+              }}
+            />
+          </div>
+
+          {/* Logo - Centered with White Background */}
+          <div 
+            className="flex justify-center"
+            style={{ marginTop: '-50px', position: 'relative', zIndex: 10 }}
+          >
+            <div 
+              style={{ 
+                backgroundColor: '#ffffff',
+                borderRadius: '50%',
+                padding: '12px',
+                boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              <img 
+                src="https://res.cloudinary.com/dkgwi1xvx/image/upload/v1769630007/sdfsdf_q4ziyu.png" 
+                alt="Sarva Solution Vision" 
+                style={{ height: '70px', width: 'auto' }}
+              />
+            </div>
+          </div>
+
+          {/* Company Header - Sans Serif Bold */}
+          <div style={{ textAlign: 'center', padding: '16px 32px 0', fontFamily: 'Arial, Helvetica, sans-serif' }}>
+            <h2 style={{ 
+              fontSize: '20px', 
+              fontWeight: 'bold', 
+              color: '#1a1a1a', 
+              letterSpacing: '1px',
+              marginBottom: '8px'
+            }}>
               SARVA SOLUTION VISION PVT LTD
             </h2>
-            <p className="text-xs text-gray-600 leading-relaxed">
+            <p style={{ fontSize: '11px', color: '#4b5563', lineHeight: '1.6', marginBottom: '4px' }}>
               Head Office - Tarafdar Bhavan - 1st Floor, Atghora, Phool Tala, (Near - Chinar Park) Rajarhat Road, Kolkata - 700136
             </p>
-            <p className="text-xs text-gray-600">
+            <p style={{ fontSize: '11px', color: '#4b5563', marginBottom: '4px' }}>
               Corporate Office - P.C. Mitra Lane, Parapukur (Near - Tinkonia Bus Stand), Purba Bardhaman, Pin - 713101
             </p>
-            <p className="text-xs text-gray-600">
+            <p style={{ fontSize: '11px', color: '#4b5563' }}>
               Phone: +91 98322 57991 | Web: www.sarvasolution.com | E-mail: sarvasolution25@gmail.com
             </p>
           </div>
 
           {/* Divider */}
-          <div className="mx-8 my-6 border-t-2 border-gray-300" />
+          <div style={{ margin: '20px 32px', borderTop: '2px solid #d1d5db' }} />
 
-          {/* Main Content */}
-          <div className="px-10 pb-8">
+          {/* Main Content - Serif Font */}
+          <div style={{ padding: '0 40px 120px', position: 'relative', zIndex: 5 }}>
             {/* Title */}
-            <h1 className="text-3xl font-bold text-center text-green-700 mb-6 tracking-wide">
+            <h1 style={{ 
+              fontSize: '32px', 
+              fontWeight: 'bold', 
+              textAlign: 'center', 
+              color: '#16a34a',
+              marginBottom: '24px',
+              letterSpacing: '2px'
+            }}>
               CONGRATULATIONS!
             </h1>
 
             {/* Salutation */}
-            <div className="mb-6">
-              <p className="text-lg">
-                {salutation} <span className="font-bold text-gray-900">{user.fullName}</span>
+            <div style={{ marginBottom: '24px' }}>
+              <p style={{ fontSize: '18px', color: '#1a1a1a' }}>
+                {salutation} <span style={{ fontWeight: 'bold' }}>{user.fullName}</span>
               </p>
-              <p className="text-base mt-2 text-gray-800">
-                WELCOME to the growing family of <span className="font-semibold">SARVA SOLUTION VISION PVT LTD</span>!
+              <p style={{ fontSize: '16px', marginTop: '8px', color: '#374151' }}>
+                WELCOME to the growing family of <span style={{ fontWeight: '600' }}>SARVA SOLUTION VISION PVT LTD</span>!
               </p>
             </div>
 
-            {/* Body Paragraphs */}
-            <div className="space-y-4 text-sm text-gray-700 text-justify leading-relaxed">
-              <p>
+            {/* Body Paragraphs - Justified */}
+            <div style={{ fontSize: '14px', color: '#374151', textAlign: 'justify', lineHeight: '1.8' }}>
+              <p style={{ marginBottom: '16px' }}>
                 We sincerely believe that your decision to join our company as an Individual Distributor will help and support the company in achieving its goals in a short time. You will also discover that being a part of this growing family provides you excellent opportunities to get everything you ever desired.
               </p>
-              <p>
+              <p style={{ marginBottom: '16px' }}>
                 Our primary goal is to provide high-quality health care and other products to our customers at affordable prices through our network of dedicated distributors like you. We are committed to your success and growth within our organization.
               </p>
-              <p>
+              <p style={{ marginBottom: '16px' }}>
                 As you begin this exciting journey with us, remember that success comes to those who work with dedication, integrity, and a spirit of teamwork. Our support system is designed to help you every step of the way—from training sessions to marketing materials, we've got you covered.
               </p>
-              <p className="font-medium text-gray-800">
-                <em>"If you grow, the company will grow"</em>—this is the motto of our organization. We believe in mutual growth and prosperity for all our members.
+              <p style={{ marginBottom: '16px', fontWeight: '500', color: '#1f2937', fontStyle: 'italic' }}>
+                "If you grow, the company will grow"—this is the motto of our organization. We believe in mutual growth and prosperity for all our members.
               </p>
-              <p>
-                With best wishes: <span className="font-semibold text-green-700">"Fly high with us as a family member."</span>
+              <p style={{ marginBottom: '16px' }}>
+                With best wishes: <span style={{ fontWeight: '600', color: '#16a34a' }}>"Fly high with us as a family member."</span>
               </p>
             </div>
 
             {/* Dynamic Details Section */}
-            <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wide">Your Membership Details</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+            <div style={{ 
+              marginTop: '32px', 
+              padding: '16px 20px', 
+              backgroundColor: '#f9fafb', 
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <h3 style={{ 
+                fontWeight: 'bold', 
+                color: '#1a1a1a', 
+                marginBottom: '12px', 
+                fontSize: '13px',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+                fontFamily: 'Arial, Helvetica, sans-serif'
+              }}>
+                Your Membership Details
+              </h3>
+              <div style={{ display: 'flex', gap: '24px', fontSize: '14px', flexWrap: 'wrap' }}>
                 <div>
-                  <span className="text-gray-500">Member ID:</span>
-                  <p className="font-bold text-green-700">{user.memberId || 'N/A'}</p>
+                  <span style={{ color: '#6b7280' }}>Member ID:</span>
+                  <p style={{ fontWeight: 'bold', color: '#16a34a', marginTop: '2px' }}>{user.memberId || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Sponsor ID:</span>
-                  <p className="font-bold text-gray-900">{user.sponsorId || 'N/A'}</p>
+                  <span style={{ color: '#6b7280' }}>Sponsor ID:</span>
+                  <p style={{ fontWeight: 'bold', color: '#1a1a1a', marginTop: '2px' }}>{user.sponsorId || 'N/A'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Date of Joining:</span>
-                  <p className="font-bold text-gray-900">{formatDate(user.createdAt)}</p>
+                  <span style={{ color: '#6b7280' }}>Date of Joining:</span>
+                  <p style={{ fontWeight: 'bold', color: '#1a1a1a', marginTop: '2px' }}>{formatDate(user.createdAt)}</p>
                 </div>
               </div>
             </div>
 
             {/* Sign-off */}
-            <div className="mt-8 text-right text-sm">
-              <p className="text-gray-600 mb-2">If you have any questions, please feel free to contact us.</p>
-              <p className="text-gray-700">Thanks and Regards,</p>
-              <p className="font-bold text-gray-900 mt-1">Customer Service Department</p>
-              <p className="text-green-700 font-semibold">SARVA SOLUTION VISION PVT LTD Team</p>
+            <div style={{ marginTop: '32px', textAlign: 'right', fontSize: '14px' }}>
+              <p style={{ color: '#4b5563', marginBottom: '8px' }}>If you have any questions, please feel free to contact us.</p>
+              <p style={{ color: '#374151' }}>Thanks and Regards,</p>
+              <p style={{ fontWeight: 'bold', color: '#1a1a1a', marginTop: '4px' }}>Customer Service Department</p>
+              <p style={{ color: '#16a34a', fontWeight: '600' }}>SARVA SOLUTION VISION PVT LTD Team</p>
             </div>
           </div>
 
-          {/* Footer Geometric Shapes */}
-          <div className="absolute bottom-0 right-0 h-24 w-full overflow-hidden">
-            {/* Green Shape - Bottom Right */}
+          {/* Footer Geometric Shapes - Inverted Colors */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px', overflow: 'hidden' }}>
+            {/* Red Shape - Bottom Left */}
             <div 
-              className="absolute bottom-0 right-0 w-48 h-24 bg-green-600"
               style={{ 
-                clipPath: 'polygon(30% 0, 100% 0, 100% 100%, 0 100%)',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                width: '50%',
+                height: '80px',
+                backgroundColor: '#dc2626',
+                clipPath: 'polygon(0 0, 85% 0, 100% 100%, 0 100%)',
               }}
             />
-            {/* Red Shape - Left of Green */}
+            {/* Green Shape - Bottom Right */}
             <div 
-              className="absolute bottom-0 right-24 w-40 h-24 bg-red-600"
               style={{ 
-                clipPath: 'polygon(30% 0, 100% 0, 70% 100%, 0 100%)',
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: '65%',
+                height: '80px',
+                backgroundColor: '#16a34a',
+                clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 0 100%)',
               }}
             />
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
