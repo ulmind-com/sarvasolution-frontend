@@ -57,6 +57,7 @@ interface EditUserModalProps {
 }
 
 const RANK_OPTIONS = [
+  'Associate',
   'Bronze',
   'Silver',
   'Gold',
