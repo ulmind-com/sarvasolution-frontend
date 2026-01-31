@@ -261,55 +261,43 @@ const NodeCard = ({
   );
 };
 
-// Curved connector component
-const TreeConnectors = ({ hasLeft, hasRight }: { hasLeft: boolean; hasRight: boolean }) => {
-  const connectorHeight = 24;
-  const branchWidth = 48; // Half of gap between children
+// Orthogonal (right-angle) connector component - high contrast, corporate org chart style
+const TreeConnectors = () => {
+  const verticalHeight = 20;
   
   return (
-    <div className="relative flex justify-center" style={{ height: connectorHeight * 2 }}>
-      {/* Vertical line from parent */}
+    <div className="flex flex-col items-center">
+      {/* Vertical line down from parent */}
       <div 
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-border to-border/60"
-        style={{ height: connectorHeight }}
+        className="w-0.5 bg-muted-foreground/70 dark:bg-muted-foreground/60"
+        style={{ height: verticalHeight }}
       />
+    </div>
+  );
+};
+
+// Horizontal bar connector for children level
+const ChildrenConnectorWrapper = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="relative">
+      {/* Horizontal bar spanning across children */}
+      <div className="absolute top-0 left-1/4 right-1/4 h-0.5 bg-muted-foreground/70 dark:bg-muted-foreground/60" />
       
-      {/* Horizontal connector with curved ends */}
-      <svg 
-        className="absolute" 
-        style={{ top: connectorHeight - 1 }}
-        width={branchWidth * 2 + 4} 
-        height={connectorHeight + 2}
-        viewBox={`0 0 ${branchWidth * 2 + 4} ${connectorHeight + 2}`}
-      >
-        {/* Left branch curve */}
-        {hasLeft && (
-          <path
-            d={`M ${branchWidth + 2} 1 
-                Q ${branchWidth + 2} ${connectorHeight / 2}, ${branchWidth / 2} ${connectorHeight / 2}
-                L 8 ${connectorHeight / 2}
-                Q 1 ${connectorHeight / 2}, 1 ${connectorHeight + 1}`}
-            fill="none"
-            className="stroke-border"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        )}
-        
-        {/* Right branch curve */}
-        {hasRight && (
-          <path
-            d={`M ${branchWidth + 2} 1 
-                Q ${branchWidth + 2} ${connectorHeight / 2}, ${branchWidth + 2 + branchWidth / 2} ${connectorHeight / 2}
-                L ${branchWidth * 2 - 6} ${connectorHeight / 2}
-                Q ${branchWidth * 2 + 3} ${connectorHeight / 2}, ${branchWidth * 2 + 3} ${connectorHeight + 1}`}
-            fill="none"
-            className="stroke-border"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        )}
-      </svg>
+      {/* Children container */}
+      <div className="flex gap-12 lg:gap-16">
+        {children}
+      </div>
+    </div>
+  );
+};
+
+// Vertical connector from horizontal bar to child node
+const ChildConnector = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex flex-col items-center">
+      {/* Vertical line from horizontal bar to child */}
+      <div className="w-0.5 h-5 bg-muted-foreground/70 dark:bg-muted-foreground/60" />
+      {children}
     </div>
   );
 };
@@ -337,31 +325,31 @@ const TreeNode = ({ node, level, maxLevel = 3, onNodeClick, isRoot = false }: Tr
 
       {showChildren && hasChildren && (
         <>
-          {/* Curved SVG Connectors */}
-          <TreeConnectors hasLeft={hasLeft || !hasRight} hasRight={hasRight || !hasLeft} />
+          {/* Orthogonal Connector - Vertical line from parent */}
+          <TreeConnectors />
 
-          {/* Children container */}
-          <div className="flex gap-12 lg:gap-16">
+          {/* Children container with horizontal bar */}
+          <ChildrenConnectorWrapper>
             {/* Left child */}
-            <div className="flex flex-col items-center">
+            <ChildConnector>
               <TreeNode 
                 node={node.left} 
                 level={level + 1} 
                 maxLevel={maxLevel} 
                 onNodeClick={onNodeClick}
               />
-            </div>
+            </ChildConnector>
 
             {/* Right child */}
-            <div className="flex flex-col items-center">
+            <ChildConnector>
               <TreeNode 
                 node={node.right} 
                 level={level + 1} 
                 maxLevel={maxLevel} 
                 onNodeClick={onNodeClick}
               />
-            </div>
-          </div>
+            </ChildConnector>
+          </ChildrenConnectorWrapper>
         </>
       )}
     </motion.div>
