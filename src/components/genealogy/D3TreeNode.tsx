@@ -297,7 +297,7 @@ interface ActiveD3NodeProps {
 }
 
 export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlighted }: ActiveD3NodeProps) => {
-  const { ring, badge, glow } = getRankStyles(data.rank);
+  const { ring, badge } = getRankStyles(data.rank);
   const initials = data.fullName
     .split(' ')
     .map((n) => n[0])
@@ -315,7 +315,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
     : 'shadow-[0_0_12px_rgba(34,197,94,0.5)]';
 
   return (
-    <HoverCard openDelay={150} closeDelay={100}>
+    <HoverCard openDelay={100} closeDelay={50}>
       <HoverCardTrigger asChild>
         <div
           onClick={() => onNodeClick?.(data.memberId)}
@@ -400,10 +400,13 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
 
       {/* HoverCardContent renders via Portal - floats above SVG stacking context */}
       <HoverCardContent 
-        side="top" 
-        sideOffset={12} 
-        collisionPadding={16}
-        className="p-0 border-0 bg-transparent shadow-none z-[9999] w-auto"
+        side="right" 
+        sideOffset={16} 
+        align="start"
+        alignOffset={-20}
+        collisionPadding={20}
+        className="p-0 border-0 bg-transparent shadow-none w-auto"
+        style={{ zIndex: 99999 }}
       >
         <TooltipContent data={data} name={name} />
       </HoverCardContent>
