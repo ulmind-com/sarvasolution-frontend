@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect, useMemo } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, ChevronLeft, ChevronRight, UserX } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, UserX, Search, FileSpreadsheet, FileText } from 'lucide-react';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +60,7 @@ const DirectTeam = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchDirectTeam = async (page: number, leg: 'left' | 'right') => {
     setIsLoading(true);
@@ -79,8 +83,64 @@ const DirectTeam = () => {
     }
   };
 
+  // Filter data based on search query
+  const filteredData = useMemo(() => {
+    if (!searchQuery.trim()) return data;
+    const query = searchQuery.toLowerCase();
+    return data.filter(member =>
+      member.fullName.toLowerCase().includes(query) ||
+      member.memberId.toLowerCase().includes(query)
+    );
+  }, [data, searchQuery]);
+
+  // Export to PDF
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text(`Direct Team Report - ${activeLeg.toUpperCase()} Leg`, 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, 22);
+
+    const tableColumn = ['Member ID', 'Name', 'Rank', 'BV', 'Status'];
+    const tableRows = filteredData.map(member => [
+      member.memberId,
+      member.fullName,
+      member.currentRank || 'Starter',
+      (member.totalBV || 0).toLocaleString(),
+      member.status || 'Inactive'
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [59, 130, 246] },
+    });
+
+    doc.save(`DirectTeam_${activeLeg}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    const headers = 'Member ID,Name,Rank,BV,Status\n';
+    const rows = filteredData.map(m =>
+      `${m.memberId},"${m.fullName}",${m.currentRank || 'Starter'},${m.totalBV || 0},${m.status || 'Inactive'}`
+    ).join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `DirectTeam_${activeLeg}_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(() => {
     setCurrentPage(1);
+    setSearchQuery('');
     fetchDirectTeam(1, activeLeg);
   }, [activeLeg]);
 
@@ -169,7 +229,7 @@ const DirectTeam = () => {
       );
     }
 
-    return data.map((member) => (
+    return filteredData.map((member) => (
       <TableRow key={member._id} className="hover:bg-muted/50">
         {/* Member Profile */}
         <TableCell>
@@ -257,23 +317,60 @@ const DirectTeam = () => {
 
       {/* Tabs & Table Card */}
       <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <Tabs value={activeLeg} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full max-w-xs grid-cols-2 bg-muted">
-              <TabsTrigger 
-                value="left" 
-                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+        <CardHeader className="pb-3 space-y-4">
+          {/* Control Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            {/* Left: Tabs */}
+            <Tabs value={activeLeg} onValueChange={handleTabChange} className="w-full sm:w-auto">
+              <TabsList className="grid w-full sm:w-auto grid-cols-2 bg-muted">
+                <TabsTrigger 
+                  value="left" 
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Left Leg
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="right"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Right Leg
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {/* Right: Search & Export */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by Name or ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 w-full sm:w-[200px]"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                disabled={filteredData.length === 0}
+                className="shrink-0"
               >
-                Left Leg
-              </TabsTrigger>
-              <TabsTrigger 
-                value="right"
-                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+                disabled={filteredData.length === 0}
+                className="shrink-0"
               >
-                Right Leg
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+                <FileText className="h-4 w-4 mr-1" />
+                PDF
+              </Button>
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
