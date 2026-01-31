@@ -261,7 +261,7 @@ const D3GenealogyTree = () => {
   const [depth, setDepth] = useState(3);
   const [currentRootId, setCurrentRootId] = useState<string | undefined>(undefined);
   const [navigationHistory, setNavigationHistory] = useState<Array<{ id: string; name: string }>>([]);
-  const [zoom, setZoom] = useState(0.8);
+  const [zoom, setZoom] = useState(1); // Start at 100% zoom
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -279,11 +279,11 @@ const D3GenealogyTree = () => {
     retry: 2,
   });
 
-  // Center tree on load
+  // Center tree on load with proper initial position
   useEffect(() => {
     if (containerRef.current) {
       const { width } = containerRef.current.getBoundingClientRect();
-      setTranslate({ x: width / 2, y: 80 });
+      setTranslate({ x: width / 2, y: 100 });
     }
   }, [treeData]);
 
@@ -356,14 +356,14 @@ const D3GenealogyTree = () => {
     );
   }, [handleNodeClick]);
 
-  // Zoom handlers
-  const handleZoomIn = () => setZoom(z => Math.min(z + 0.2, 2));
-  const handleZoomOut = () => setZoom(z => Math.max(z - 0.2, 0.3));
+  // Zoom handlers - increased max zoom to 4x
+  const handleZoomIn = () => setZoom(z => Math.min(z + 0.3, 4));
+  const handleZoomOut = () => setZoom(z => Math.max(z - 0.3, 0.1));
   const handleResetView = () => {
     if (containerRef.current) {
       const { width } = containerRef.current.getBoundingClientRect();
-      setTranslate({ x: width / 2, y: 80 });
-      setZoom(0.8);
+      setTranslate({ x: width / 2, y: 100 });
+      setZoom(1); // Start at 100% zoom
     }
   };
 
@@ -461,13 +461,14 @@ const D3GenealogyTree = () => {
                 pathFunc="step"
                 translate={translate}
                 zoom={zoom}
+                scaleExtent={{ min: 0.1, max: 4 }}
                 onUpdate={({ zoom: newZoom, translate: newTranslate }) => {
                   setZoom(newZoom);
                   setTranslate(newTranslate);
                 }}
                 renderCustomNodeElement={renderCustomNode}
-                nodeSize={{ x: 200, y: 180 }}
-                separation={{ siblings: 1.2, nonSiblings: 1.5 }}
+                nodeSize={{ x: 220, y: 200 }}
+                separation={{ siblings: 1.3, nonSiblings: 1.6 }}
                 enableLegacyTransitions
                 transitionDuration={300}
                 pathClassFunc={() => 'tree-step-link'}

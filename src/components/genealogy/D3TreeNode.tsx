@@ -1,11 +1,6 @@
-import { UserPlus, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { TreeNodeData } from './TreeNode';
@@ -133,7 +128,119 @@ export const EmptyD3Node = () => (
   </div>
 );
 
-// Active node component for D3 tree
+// Custom Hover Tooltip (works inside SVG foreignObject)
+const HoverTooltip = ({ 
+  data, 
+  name, 
+  isVisible 
+}: { 
+  data: D3TreeNodeDatum['attributes']; 
+  name: string; 
+  isVisible: boolean;
+}) => {
+  const { ring, badge } = getRankStyles(data.rank);
+  const initials = data.fullName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+  const avatarUrl = data.profileImage || data.avatar;
+
+  if (!isVisible) return null;
+
+  return (
+    <div 
+      className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200"
+      style={{ minWidth: '220px' }}
+    >
+      <div className="bg-popover/98 backdrop-blur-lg border border-border shadow-2xl rounded-xl overflow-hidden">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-primary/10 to-transparent p-3 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <Avatar className={cn('w-10 h-10', ring)}>
+              <AvatarImage src={avatarUrl} alt={data.fullName} />
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-bold text-foreground text-sm">{name}</p>
+              <Badge className={cn('text-[9px] mt-0.5', badge)}>{data.rank}</Badge>
+            </div>
+          </div>
+        </div>
+
+        {/* Details Grid */}
+        <div className="p-3 space-y-2 text-xs">
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <User className="h-3.5 w-3.5 text-primary" />
+            <span className="text-muted-foreground flex-1">Member ID</span>
+            <span className="font-mono font-semibold text-foreground">{data.memberId}</span>
+          </div>
+
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <Users className="h-3.5 w-3.5 text-chart-2" />
+            <span className="text-muted-foreground flex-1">Parent ID</span>
+            <span className="font-mono font-semibold text-primary">{data.parentId || 'Root'}</span>
+          </div>
+
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <MapPin className="h-3.5 w-3.5 text-chart-3" />
+            <span className="text-muted-foreground flex-1">Position</span>
+            <Badge variant="outline" className="text-[9px] capitalize font-medium">
+              {data.position === 'root' ? 'Root' : `${data.position} Leg`}
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <Award className="h-3.5 w-3.5 text-chart-4" />
+            <span className="text-muted-foreground flex-1">Rank</span>
+            <span className="font-semibold text-foreground">{data.rank}</span>
+          </div>
+
+          {data.joiningDate && (
+            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+              <Calendar className="h-3.5 w-3.5 text-chart-1" />
+              <span className="text-muted-foreground flex-1">Joined</span>
+              <span className="font-medium text-foreground">
+                {new Date(data.joiningDate).toLocaleDateString()}
+              </span>
+            </div>
+          )}
+
+          {data.directSponsors !== undefined && (
+            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+              <Users className="h-3.5 w-3.5 text-primary" />
+              <span className="text-muted-foreground flex-1">Direct Sponsors</span>
+              <span className="font-bold text-foreground">{data.directSponsors}</span>
+            </div>
+          )}
+
+          {data.totalDownline !== undefined && (
+            <div className="flex items-center gap-2 py-1.5">
+              <Users className="h-3.5 w-3.5 text-chart-2" />
+              <span className="text-muted-foreground flex-1">Total Downline</span>
+              <span className="font-bold text-foreground">{data.totalDownline}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer hint */}
+        <div className="px-3 py-2 bg-muted/30 border-t border-border/30">
+          <p className="text-[10px] text-muted-foreground text-center">
+            Click to view this member's network
+          </p>
+        </div>
+      </div>
+
+      {/* Arrow pointer */}
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-3 h-3 bg-popover border-l border-b border-border rotate-45" />
+    </div>
+  );
+};
+
+// Active node component for D3 tree with custom hover tooltip
 interface ActiveD3NodeProps {
   data: D3TreeNodeDatum['attributes'];
   name: string;
@@ -142,6 +249,7 @@ interface ActiveD3NodeProps {
 }
 
 export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren }: ActiveD3NodeProps) => {
+  const [isHovered, setIsHovered] = useState(false);
   const { ring, badge, glow } = getRankStyles(data.rank);
   const initials = data.fullName
     .split(' ')
@@ -153,132 +261,60 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren }: ActiveD3N
   const avatarUrl = data.profileImage || data.avatar;
 
   return (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            onClick={() => onNodeClick?.(data.memberId)}
-            className="flex flex-col items-center cursor-pointer group transition-transform duration-200 hover:scale-105"
+    <div 
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div
+        onClick={() => onNodeClick?.(data.memberId)}
+        className="flex flex-col items-center cursor-pointer group transition-transform duration-200 hover:scale-105"
+      >
+        {/* Avatar with glow effect */}
+        <div className={cn('relative', glow && 'transition-shadow duration-300')}>
+          <Avatar
+            className={cn(
+              'w-14 h-14 border-2 border-background transition-all duration-300',
+              ring,
+              glow,
+              'group-hover:shadow-xl'
+            )}
           >
-            {/* Avatar with glow effect */}
-            <div className={cn('relative', glow && 'transition-shadow duration-300')}>
-              <Avatar
-                className={cn(
-                  'w-14 h-14 border-2 border-background transition-all duration-300',
-                  ring,
-                  glow,
-                  'group-hover:shadow-xl'
-                )}
-              >
-                <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
-                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-xs">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              
-              {/* Drill-down indicator */}
-              {hasChildren && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
-                </div>
-              )}
+            <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-bold text-xs">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          
+          {/* Drill-down indicator */}
+          {hasChildren && (
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-background border border-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <ChevronDown className="w-2.5 h-2.5 text-muted-foreground" />
             </div>
+          )}
+        </div>
 
-            {/* Glassmorphism Info Badge */}
-            <div className="mt-1.5 text-center">
-              <div className="bg-background/90 backdrop-blur-md border border-border/50 rounded-lg px-2 py-1 shadow-sm">
-                <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
-                  {name.split(' ')[0]}
-                </p>
-                <p className="text-[9px] text-muted-foreground font-mono">
-                  {data.memberId}
-                </p>
-              </div>
-              <Badge
-                variant="outline"
-                className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', badge)}
-              >
-                {data.rank}
-              </Badge>
-            </div>
+        {/* Glassmorphism Info Badge */}
+        <div className="mt-1.5 text-center">
+          <div className="bg-background/90 backdrop-blur-md border border-border/50 rounded-lg px-2 py-1 shadow-sm">
+            <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
+              {name.split(' ')[0]}
+            </p>
+            <p className="text-[9px] text-muted-foreground font-mono">
+              {data.memberId}
+            </p>
           </div>
-        </TooltipTrigger>
-        
-        <TooltipContent 
-          side="right" 
-          className="p-0 overflow-hidden bg-popover/95 backdrop-blur-md border-border/50 shadow-xl rounded-xl max-w-[220px]"
-        >
-          <div className="p-3 space-y-2">
-            {/* Header */}
-            <div className="flex items-center gap-2">
-              <Avatar className={cn('w-8 h-8', ring)}>
-                <AvatarImage src={avatarUrl} alt={data.fullName} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold text-foreground text-xs">{data.fullName}</p>
-                <Badge className={cn('text-[9px] mt-0.5', badge)}>{data.rank}</Badge>
-              </div>
-            </div>
-            
-            {/* Details Grid */}
-            <div className="space-y-1.5 text-[11px]">
-              <div className="flex justify-between items-center py-1 border-b border-border/30">
-                <span className="text-muted-foreground">Member ID</span>
-                <span className="font-mono font-medium text-foreground">{data.memberId}</span>
-              </div>
-              
-              {data.parentId && (
-                <div className="flex justify-between items-center py-1 border-b border-border/30">
-                  <span className="text-muted-foreground">Parent ID</span>
-                  <span className="font-mono font-medium text-primary">{data.parentId}</span>
-                </div>
-              )}
-              
-              {data.position !== 'root' && (
-                <div className="flex justify-between items-center py-1 border-b border-border/30">
-                  <span className="text-muted-foreground">Position</span>
-                  <Badge variant="outline" className="text-[9px] capitalize">
-                    {data.position} Leg
-                  </Badge>
-                </div>
-              )}
-              
-              {data.joiningDate && (
-                <div className="flex justify-between items-center py-1 border-b border-border/30">
-                  <span className="text-muted-foreground">Joined</span>
-                  <span className="font-medium text-foreground">
-                    {new Date(data.joiningDate).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-              
-              {data.directSponsors !== undefined && (
-                <div className="flex justify-between items-center py-1 border-b border-border/30">
-                  <span className="text-muted-foreground">Direct Sponsors</span>
-                  <span className="font-semibold text-foreground">{data.directSponsors}</span>
-                </div>
-              )}
-              
-              {data.totalDownline !== undefined && (
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-muted-foreground">Total Downline</span>
-                  <span className="font-semibold text-foreground">{data.totalDownline}</span>
-                </div>
-              )}
-            </div>
-            
-            {/* Click hint */}
-            <div className="pt-1.5 border-t border-border/30">
-              <p className="text-[9px] text-muted-foreground text-center">
-                Click to view this member's network
-              </p>
-            </div>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          <Badge
+            variant="outline"
+            className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', badge)}
+          >
+            {data.rank}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Custom Hover Tooltip */}
+      <HoverTooltip data={data} name={name} isVisible={isHovered} />
+    </div>
   );
 };
