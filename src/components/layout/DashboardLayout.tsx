@@ -27,7 +27,6 @@ import {
   LogOut,
   User,
   Menu,
-  Network,
   IndianRupee,
   Award,
   FileText,
@@ -50,7 +49,14 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { path: '/dashboard', label: 'Overview', icon: Home },
-  { path: '/dashboard/genealogy', label: 'Genealogy', icon: Network },
+  { 
+    label: 'Team Details', 
+    icon: Users,
+    children: [
+      { path: '/dashboard/genealogy', label: 'Genealogy Tree' },
+      { path: '/dashboard/direct-team', label: 'My Direct Team' }
+    ]
+  },
   { path: '/dashboard/welcome-letter', label: 'Welcome Letter', icon: Award },
   { path: '/dashboard/store', label: 'Product Store', icon: ShoppingBag },
   { path: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
