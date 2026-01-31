@@ -27,7 +27,10 @@ const editUserSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone must be at least 10 digits'),
-  panCardNumber: z.string().min(10, 'PAN must be 10 characters').max(10).toUpperCase(),
+  panCardNumber: z.string().optional().refine(
+    (val) => !val || val.length === 0 || val.length === 10,
+    { message: 'PAN must be 10 characters' }
+  ),
   rank: z.string(),
   status: z.enum(['active', 'inactive', 'blocked']),
   joiningPackage: z.number().min(0, 'Package must be positive'),
@@ -54,14 +57,18 @@ interface EditUserModalProps {
 }
 
 const RANK_OPTIONS = [
-  'Associate',
   'Bronze',
   'Silver',
   'Gold',
   'Platinum',
   'Diamond',
-  'Crown Diamond',
+  'Blue Diamond',
+  'Black Diamond',
   'Royal Diamond',
+  'Crown Diamond',
+  'Ambassador',
+  'Crown Ambassador',
+  'SSVPL Legend',
 ];
 
 const STATUS_OPTIONS = [
@@ -121,7 +128,7 @@ const EditUserModal = ({
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
-        panCardNumber: data.panCardNumber.toUpperCase(),
+        panCardNumber: data.panCardNumber?.toUpperCase() || '',
         rank: data.rank,
         status: data.status,
         joiningPackage: data.joiningPackage,
