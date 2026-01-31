@@ -27,10 +27,6 @@ const editUserSchema = z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone must be at least 10 digits'),
-  panCardNumber: z.string().optional().refine(
-    (val) => !val || val.length === 0 || val.length === 10,
-    { message: 'PAN must be 10 characters' }
-  ),
   rank: z.string(),
   status: z.enum(['active', 'inactive', 'blocked']),
   joiningPackage: z.number().min(0, 'Package must be positive'),
@@ -42,7 +38,6 @@ interface UserData {
   fullName: string;
   email: string;
   phone: string;
-  panCardNumber?: string;
   rank: string;
   status: 'active' | 'inactive' | 'blocked';
   joiningPackage: number;
@@ -100,7 +95,6 @@ const EditUserModal = ({
       fullName: userData.fullName || '',
       email: userData.email || '',
       phone: userData.phone || '',
-      panCardNumber: userData.panCardNumber || '',
       rank: userData.rank || 'Associate',
       status: userData.status || 'active',
       joiningPackage: userData.joiningPackage || 0,
@@ -114,7 +108,6 @@ const EditUserModal = ({
         fullName: userData.fullName || '',
         email: userData.email || '',
         phone: userData.phone || '',
-        panCardNumber: userData.panCardNumber || '',
         rank: userData.rank || 'Associate',
         status: userData.status || 'active',
         joiningPackage: userData.joiningPackage || 0,
@@ -129,7 +122,6 @@ const EditUserModal = ({
         fullName: data.fullName,
         email: data.email,
         phone: data.phone,
-        panCardNumber: data.panCardNumber?.toUpperCase() || '',
         rank: data.rank,
         status: data.status,
         joiningPackage: data.joiningPackage,
@@ -198,22 +190,6 @@ const EditUserModal = ({
             />
             {errors.phone && (
               <p className="text-sm text-destructive">{errors.phone.message}</p>
-            )}
-          </div>
-
-          {/* PAN Card */}
-          <div className="space-y-2">
-            <Label htmlFor="panCardNumber">PAN Card Number</Label>
-            <Input
-              id="panCardNumber"
-              placeholder="ABCDE1234F"
-              {...register('panCardNumber')}
-              disabled={isSubmitting}
-              className="uppercase"
-              maxLength={10}
-            />
-            {errors.panCardNumber && (
-              <p className="text-sm text-destructive">{errors.panCardNumber.message}</p>
             )}
           </div>
 
