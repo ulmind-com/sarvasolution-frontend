@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award } from 'lucide-react';
+import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award, CheckCircle2, XCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,13 @@ export interface D3TreeNodeDatum {
     parentId?: string;
     directSponsors?: number;
     isEmpty?: boolean;
+    // New fields for status and team stats
+    sponsorId?: string;
+    status?: 'active' | 'inactive';
+    leftDirectActive?: number;
+    leftDirectInactive?: number;
+    rightDirectActive?: number;
+    rightDirectInactive?: number;
   };
   children?: D3TreeNodeDatum[];
 }
@@ -61,6 +68,13 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       parentId: node.parentId,
       directSponsors: node.directSponsors,
       isEmpty: false,
+      // New fields for status and team stats
+      sponsorId: node.sponsorId,
+      status: node.status,
+      leftDirectActive: node.leftDirectActive,
+      leftDirectInactive: node.leftDirectInactive,
+      rightDirectActive: node.rightDirectActive,
+      rightDirectInactive: node.rightDirectInactive,
     },
     children: children.length > 0 ? children : undefined,
   };
@@ -128,7 +142,7 @@ export const EmptyD3Node = () => (
   </div>
 );
 
-// Custom Hover Tooltip (works inside SVG foreignObject)
+// Custom Hover Tooltip - Dark theme with detailed stats
 const HoverTooltip = ({ 
   data, 
   name, 
@@ -146,17 +160,18 @@ const HoverTooltip = ({
     .substring(0, 2)
     .toUpperCase();
   const avatarUrl = data.profileImage || data.avatar;
+  const isInactive = data.status?.toLowerCase() === 'inactive';
 
   if (!isVisible) return null;
 
   return (
     <div 
       className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200"
-      style={{ minWidth: '220px' }}
+      style={{ minWidth: '260px' }}
     >
-      <div className="bg-popover/98 backdrop-blur-lg border border-border shadow-2xl rounded-xl overflow-hidden">
+      <div className="bg-slate-900 backdrop-blur-lg border border-slate-700 shadow-2xl rounded-xl overflow-hidden text-slate-100">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-primary/10 to-transparent p-3 border-b border-border/50">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-3 border-b border-slate-700">
           <div className="flex items-center gap-3">
             <Avatar className={cn('w-10 h-10', ring)}>
               <AvatarImage src={avatarUrl} alt={data.fullName} />
@@ -164,78 +179,123 @@ const HoverTooltip = ({
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <p className="font-bold text-foreground text-sm">{name}</p>
-              <Badge className={cn('text-[9px] mt-0.5', badge)}>{data.rank}</Badge>
+            <div className="flex-1">
+              <p className="font-bold text-slate-50 text-sm">{name}</p>
+              <p className="text-[10px] text-slate-400 font-mono">{data.memberId}</p>
             </div>
+            {/* Status Badge */}
+            <Badge 
+              className={cn(
+                'text-[9px] px-2 py-0.5',
+                isInactive 
+                  ? 'bg-destructive/20 text-destructive border-destructive/30' 
+                  : 'bg-chart-5/20 text-chart-5 border-chart-5/30'
+              )}
+              variant="outline"
+            >
+              {isInactive ? 'Inactive' : 'Active'}
+            </Badge>
           </div>
         </div>
 
         {/* Details Grid */}
         <div className="p-3 space-y-2 text-xs">
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <User className="h-3.5 w-3.5 text-primary" />
-            <span className="text-muted-foreground flex-1">Member ID</span>
-            <span className="font-mono font-semibold text-foreground">{data.memberId}</span>
-          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
+              <User className="h-3.5 w-3.5 text-primary" />
+              <span className="text-slate-400">Sponsor</span>
+            </div>
+            <div className="py-1 border-b border-slate-700/50 text-right">
+              <span className="font-mono font-semibold text-slate-200">{data.sponsorId || data.parentId || 'N/A'}</span>
+            </div>
 
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <Users className="h-3.5 w-3.5 text-chart-2" />
-            <span className="text-muted-foreground flex-1">Parent ID</span>
-            <span className="font-mono font-semibold text-primary">{data.parentId || 'Root'}</span>
-          </div>
-
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <MapPin className="h-3.5 w-3.5 text-chart-3" />
-            <span className="text-muted-foreground flex-1">Position</span>
-            <Badge variant="outline" className="text-[9px] capitalize font-medium">
-              {data.position === 'root' ? 'Root' : `${data.position} Leg`}
-            </Badge>
-          </div>
-
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <Award className="h-3.5 w-3.5 text-chart-4" />
-            <span className="text-muted-foreground flex-1">Rank</span>
-            <span className="font-semibold text-foreground">{data.rank}</span>
-          </div>
-
-          {data.joiningDate && (
-            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
+            <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
               <Calendar className="h-3.5 w-3.5 text-chart-1" />
-              <span className="text-muted-foreground flex-1">Joined</span>
-              <span className="font-medium text-foreground">
-                {new Date(data.joiningDate).toLocaleDateString()}
+              <span className="text-slate-400">Joined</span>
+            </div>
+            <div className="py-1 border-b border-slate-700/50 text-right">
+              <span className="font-medium text-slate-200">
+                {data.joiningDate ? new Date(data.joiningDate).toLocaleDateString() : 'N/A'}
               </span>
             </div>
-          )}
 
-          {data.directSponsors !== undefined && (
-            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-              <Users className="h-3.5 w-3.5 text-primary" />
-              <span className="text-muted-foreground flex-1">Direct Sponsors</span>
-              <span className="font-bold text-foreground">{data.directSponsors}</span>
+            <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
+              <Award className="h-3.5 w-3.5 text-chart-4" />
+              <span className="text-slate-400">Rank</span>
             </div>
-          )}
+            <div className="py-1 border-b border-slate-700/50 text-right">
+              <Badge className={cn('text-[9px] px-1.5', badge)}>{data.rank}</Badge>
+            </div>
 
+            <div className="flex items-center gap-2 py-1 border-b border-slate-700/50">
+              <MapPin className="h-3.5 w-3.5 text-chart-3" />
+              <span className="text-slate-400">Position</span>
+            </div>
+            <div className="py-1 border-b border-slate-700/50 text-right">
+              <Badge variant="outline" className="text-[9px] capitalize font-medium border-slate-600 text-slate-300">
+                {data.position === 'root' ? 'Root' : `${data.position} Leg`}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Team Stats Section */}
+          <div className="pt-2 mt-2 border-t border-slate-700">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Direct Business</p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* Left Leg Stats */}
+              <div className="bg-slate-800/50 rounded-lg p-2">
+                <p className="text-[10px] font-medium text-slate-300 mb-1.5">Left Leg</p>
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-chart-5" />
+                    <span className="text-chart-5 font-semibold">{data.leftDirectActive ?? 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <XCircle className="h-3.5 w-3.5 text-destructive" />
+                    <span className="text-destructive font-semibold">{data.leftDirectInactive ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Right Leg Stats */}
+              <div className="bg-slate-800/50 rounded-lg p-2">
+                <p className="text-[10px] font-medium text-slate-300 mb-1.5">Right Leg</p>
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-chart-5" />
+                    <span className="text-chart-5 font-semibold">{data.rightDirectActive ?? 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <XCircle className="h-3.5 w-3.5 text-destructive" />
+                    <span className="text-destructive font-semibold">{data.rightDirectInactive ?? 0}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Downline */}
           {data.totalDownline !== undefined && (
-            <div className="flex items-center gap-2 py-1.5">
-              <Users className="h-3.5 w-3.5 text-chart-2" />
-              <span className="text-muted-foreground flex-1">Total Downline</span>
-              <span className="font-bold text-foreground">{data.totalDownline}</span>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-700">
+              <div className="flex items-center gap-2">
+                <Users className="h-3.5 w-3.5 text-chart-2" />
+                <span className="text-slate-400">Total Downline</span>
+              </div>
+              <span className="font-bold text-slate-100">{data.totalDownline}</span>
             </div>
           )}
         </div>
 
         {/* Footer hint */}
-        <div className="px-3 py-2 bg-muted/30 border-t border-border/30">
-          <p className="text-[10px] text-muted-foreground text-center">
+        <div className="px-3 py-2 bg-slate-800/50 border-t border-slate-700">
+          <p className="text-[10px] text-slate-500 text-center">
             Click to view this member's network
           </p>
         </div>
       </div>
 
       {/* Arrow pointer */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-3 h-3 bg-popover border-l border-b border-border rotate-45" />
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1.5 w-3 h-3 bg-slate-900 border-l border-b border-slate-700 rotate-45" />
     </div>
   );
 };
@@ -259,6 +319,13 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
     .toUpperCase();
 
   const avatarUrl = data.profileImage || data.avatar;
+  
+  // Determine status-based styling
+  const isInactive = data.status?.toLowerCase() === 'inactive';
+  const statusBorderColor = isInactive ? 'border-destructive' : 'border-chart-5';
+  const statusShadow = isInactive 
+    ? 'shadow-[0_0_12px_rgba(var(--destructive),0.4)]' 
+    : 'shadow-[0_0_12px_rgba(var(--chart-5),0.4)]';
 
   return (
     <div 
@@ -275,7 +342,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
             : 'hover:scale-105'
         )}
       >
-        {/* Highlight glow effect */}
+        {/* Highlight glow effect for search */}
         {isHighlighted && (
           <div 
             className="absolute -inset-3 rounded-2xl animate-pulse pointer-events-none"
@@ -287,8 +354,8 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           />
         )}
         
-        {/* Avatar with glow effect */}
-        <div className={cn('relative', glow && 'transition-shadow duration-300')}>
+        {/* Avatar with status-based glow effect */}
+        <div className={cn('relative', 'transition-shadow duration-300')}>
           <Avatar
             className={cn(
               'w-14 h-14 border-2 transition-all duration-300',
@@ -297,7 +364,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
                 : cn('border-background', ring),
               isHighlighted 
                 ? 'shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
-                : cn(glow, 'group-hover:shadow-xl')
+                : cn(statusShadow, 'group-hover:shadow-xl')
             )}
           >
             <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
@@ -305,6 +372,14 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
               {initials}
             </AvatarFallback>
           </Avatar>
+          
+          {/* Status indicator dot */}
+          <div 
+            className={cn(
+              'absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-background',
+              isInactive ? 'bg-destructive' : 'bg-chart-5'
+            )}
+          />
           
           {/* Drill-down indicator */}
           {hasChildren && (
@@ -314,13 +389,13 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           )}
         </div>
 
-        {/* Glassmorphism Info Badge */}
+        {/* Glassmorphism Info Badge with status border */}
         <div className="mt-1.5 text-center">
           <div className={cn(
-            'backdrop-blur-md border rounded-lg px-2 py-1 shadow-sm transition-all duration-300',
+            'backdrop-blur-md border-2 rounded-lg px-2 py-1 shadow-sm transition-all duration-300',
             isHighlighted 
               ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-300' 
-              : 'bg-background/90 border-border/50'
+              : cn('bg-background/90', statusBorderColor)
           )}>
             <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
               {name.split(' ')[0]}
