@@ -240,15 +240,15 @@ const HoverTooltip = ({
   );
 };
 
-// Active node component for D3 tree with custom hover tooltip
 interface ActiveD3NodeProps {
   data: D3TreeNodeDatum['attributes'];
   name: string;
   onNodeClick?: (memberId: string) => void;
   hasChildren?: boolean;
+  isHighlighted?: boolean;
 }
 
-export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren }: ActiveD3NodeProps) => {
+export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlighted }: ActiveD3NodeProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const { ring, badge, glow } = getRankStyles(data.rank);
   const initials = data.fullName
@@ -268,16 +268,36 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren }: ActiveD3N
     >
       <div
         onClick={() => onNodeClick?.(data.memberId)}
-        className="flex flex-col items-center cursor-pointer group transition-transform duration-200 hover:scale-105"
+        className={cn(
+          'flex flex-col items-center cursor-pointer group transition-all duration-300',
+          isHighlighted 
+            ? 'scale-110 z-50' 
+            : 'hover:scale-105'
+        )}
       >
+        {/* Highlight glow effect */}
+        {isHighlighted && (
+          <div 
+            className="absolute -inset-3 rounded-2xl animate-pulse pointer-events-none"
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(250,204,21,0.4), rgba(234,179,8,0.3))',
+              boxShadow: '0 0 30px rgba(250,204,21,0.6), 0 0 60px rgba(250,204,21,0.3)',
+              zIndex: -1
+            }} 
+          />
+        )}
+        
         {/* Avatar with glow effect */}
         <div className={cn('relative', glow && 'transition-shadow duration-300')}>
           <Avatar
             className={cn(
-              'w-14 h-14 border-2 border-background transition-all duration-300',
-              ring,
-              glow,
-              'group-hover:shadow-xl'
+              'w-14 h-14 border-2 transition-all duration-300',
+              isHighlighted 
+                ? 'border-yellow-400 ring-4 ring-yellow-400' 
+                : cn('border-background', ring),
+              isHighlighted 
+                ? 'shadow-[0_0_25px_rgba(250,204,21,0.7)]' 
+                : cn(glow, 'group-hover:shadow-xl')
             )}
           >
             <AvatarImage src={avatarUrl} alt={data.fullName} className="object-cover" />
@@ -296,7 +316,12 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren }: ActiveD3N
 
         {/* Glassmorphism Info Badge */}
         <div className="mt-1.5 text-center">
-          <div className="bg-background/90 backdrop-blur-md border border-border/50 rounded-lg px-2 py-1 shadow-sm">
+          <div className={cn(
+            'backdrop-blur-md border rounded-lg px-2 py-1 shadow-sm transition-all duration-300',
+            isHighlighted 
+              ? 'bg-yellow-50 border-yellow-400 ring-2 ring-yellow-300' 
+              : 'bg-background/90 border-border/50'
+          )}>
             <p className="text-[11px] font-semibold text-foreground truncate max-w-[80px]">
               {name.split(' ')[0]}
             </p>

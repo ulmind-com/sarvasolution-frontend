@@ -4,11 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, RefreshCw, Users, ArrowUp, Home, Settings2, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { AlertCircle, RefreshCw, Users, ArrowUp, Home, Settings2, ZoomIn, ZoomOut, Move, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import api from '@/lib/api';
 import { TreeNodeData } from './TreeNode';
 import { transformToD3Format, D3TreeNodeDatum, EmptyD3Node, ActiveD3Node } from './D3TreeNode';
@@ -257,12 +258,39 @@ const ZoomControls = ({
   </div>
 );
 
+// Search helper function - recursive search through tree
+const findNodeInTree = (node: D3TreeNodeDatum | null, searchTerm: string): D3TreeNodeDatum | null => {
+  if (!node) return null;
+  
+  const term = searchTerm.toLowerCase().trim();
+  const name = node.name?.toLowerCase() || '';
+  const memberId = node.attributes?.memberId?.toLowerCase() || '';
+  
+  // Check if current node matches (skip empty nodes)
+  if (!node.attributes?.isEmpty && (name.includes(term) || memberId.includes(term))) {
+    return node;
+  }
+  
+  // Recursive check in children
+  if (node.children) {
+    for (const child of node.children) {
+      const found = findNodeInTree(child, searchTerm);
+      if (found) return found;
+    }
+  }
+  
+  return null;
+};
+
 const D3GenealogyTree = () => {
+  const { toast } = useToast();
   const [depth, setDepth] = useState(3);
   const [currentRootId, setCurrentRootId] = useState<string | undefined>(undefined);
   const [navigationHistory, setNavigationHistory] = useState<Array<{ id: string; name: string }>>([]);
-  const [zoom, setZoom] = useState(1); // Start at 100% zoom
+  const [zoom, setZoom] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { 
@@ -319,13 +347,61 @@ const D3GenealogyTree = () => {
   const handleResetToMyNetwork = () => {
     setNavigationHistory([]);
     setCurrentRootId(undefined);
+    setHighlightedId(null);
+    setSearchQuery('');
   };
 
-  // Custom node renderer
+  // Search handler
+  const handleSearch = useCallback(() => {
+    if (!searchQuery.trim()) {
+      setHighlightedId(null);
+      return;
+    }
+    
+    if (!d3TreeData) {
+      toast({
+        title: 'No data',
+        description: 'Tree data is not loaded yet.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const foundNode = findNodeInTree(d3TreeData as D3TreeNodeDatum, searchQuery);
+    
+    if (foundNode && foundNode.attributes?.memberId) {
+      setHighlightedId(foundNode.attributes.memberId);
+      toast({
+        title: 'Member found!',
+        description: `Highlighting ${foundNode.name} (${foundNode.attributes.memberId})`,
+      });
+    } else {
+      setHighlightedId(null);
+      toast({
+        title: 'Not found',
+        description: 'Member not found in current tree view. Try increasing tree depth.',
+        variant: 'destructive',
+      });
+    }
+  }, [searchQuery, d3TreeData, toast]);
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setHighlightedId(null);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // Custom node renderer with highlight support
   const renderCustomNode = useCallback(({ nodeDatum }: CustomNodeElementProps) => {
     const nodeData = nodeDatum as unknown as D3TreeNodeDatum;
     const isEmpty = nodeData.attributes?.isEmpty;
     const hasChildren = nodeDatum.children && nodeDatum.children.length > 0;
+    const isHighlighted = nodeData.attributes?.memberId === highlightedId;
 
     const nodeWidth = isEmpty ? 80 : 120;
     const nodeHeight = isEmpty ? 70 : 100;
@@ -348,13 +424,14 @@ const D3GenealogyTree = () => {
                 name={nodeData.name}
                 onNodeClick={handleNodeClick}
                 hasChildren={hasChildren}
+                isHighlighted={isHighlighted}
               />
             )}
           </div>
         </foreignObject>
       </g>
     );
-  }, [handleNodeClick]);
+  }, [handleNodeClick, highlightedId]);
 
   // Zoom handlers - increased max zoom to 4x
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.3, 4));
@@ -407,6 +484,47 @@ const D3GenealogyTree = () => {
           </Button>
         </div>
       </div>
+
+      {/* Search Bar */}
+      <Card className="border-border">
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by Name or Member ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={handleClearSearch}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+            <Button onClick={handleSearch} className="gap-2">
+              <Search className="h-4 w-4" />
+              Find Member
+            </Button>
+          </div>
+          {highlightedId && (
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+              <span className="inline-block w-3 h-3 rounded-full bg-yellow-400" />
+              Highlighted: <span className="font-mono font-medium text-foreground">{highlightedId}</span>
+              <Button variant="link" size="sm" className="h-auto p-0 ml-2 text-xs" onClick={handleClearSearch}>
+                Clear
+              </Button>
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Navigation Breadcrumb */}
       {navigationHistory.length > 0 && (
