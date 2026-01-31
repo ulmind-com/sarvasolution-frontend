@@ -22,6 +22,7 @@ import UpdateProfile from "./pages/dashboard/UpdateProfile";
 import ChangePassword from "./pages/dashboard/ChangePassword";
 import CappingReport from "./pages/dashboard/CappingReport";
 import IncomeReport from "./pages/dashboard/IncomeReport";
+import WelcomeLetter from "./pages/dashboard/WelcomeLetter";
 
 // Admin
 import AdminLayout from "./components/layout/AdminLayout";
@@ -110,6 +111,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <IncomeReport />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/welcome-letter" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <WelcomeLetter />
           </DashboardLayout>
         </ProtectedRoute>
       } />
