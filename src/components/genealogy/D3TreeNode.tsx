@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award } from 'lucide-react';
+import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award, CheckCircle2, XCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -18,8 +18,16 @@ export interface D3TreeNodeDatum {
     joiningDate?: string;
     totalDownline?: number;
     parentId?: string;
+    sponsorId?: string;
     directSponsors?: number;
     isEmpty?: boolean;
+    isActive?: boolean;
+    status?: string;
+    // Direct Business Stats
+    leftDirectActive?: number;
+    leftDirectInactive?: number;
+    rightDirectActive?: number;
+    rightDirectInactive?: number;
   };
   children?: D3TreeNodeDatum[];
 }
@@ -59,8 +67,16 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       joiningDate: node.joiningDate,
       totalDownline: node.totalDownline,
       parentId: node.parentId,
+      sponsorId: node.sponsorId,
       directSponsors: node.directSponsors,
       isEmpty: false,
+      isActive: node.isActive ?? (node.status?.toLowerCase() === 'active'),
+      status: node.status,
+      // Direct Business Stats
+      leftDirectActive: node.leftDirectActive ?? 0,
+      leftDirectInactive: node.leftDirectInactive ?? 0,
+      rightDirectActive: node.rightDirectActive ?? 0,
+      rightDirectInactive: node.rightDirectInactive ?? 0,
     },
     children: children.length > 0 ? children : undefined,
   };
@@ -146,88 +162,126 @@ const HoverTooltip = ({
     .substring(0, 2)
     .toUpperCase();
   const avatarUrl = data.profileImage || data.avatar;
+  const isActive = data.isActive ?? (data.status?.toLowerCase() === 'active');
+
+  // Format joining date
+  const formattedJoiningDate = data.joiningDate 
+    ? new Date(data.joiningDate).toLocaleDateString('en-GB', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      })
+    : null;
+
+  // Get sponsor display value
+  const sponsorDisplay = data.sponsorId || data.parentId || 'N/A';
 
   if (!isVisible) return null;
 
   return (
     <div 
       className="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 pointer-events-none animate-in fade-in-0 zoom-in-95 duration-200"
-      style={{ minWidth: '220px' }}
+      style={{ minWidth: '260px' }}
     >
       <div className="bg-popover/98 backdrop-blur-lg border border-border shadow-2xl rounded-xl overflow-hidden">
-        {/* Header with gradient */}
-        <div className="bg-gradient-to-r from-primary/10 to-transparent p-3 border-b border-border/50">
+        {/* Section A: Identity Header */}
+        <div className="bg-gradient-to-r from-primary/10 to-transparent p-3 border-b border-border/50 relative">
+          {/* Status Badge - Top Right */}
+          <Badge 
+            className={cn(
+              'absolute top-2 right-2 text-[9px] px-1.5 py-0.5',
+              isActive 
+                ? 'bg-chart-2/20 text-chart-2 border-chart-2/30' 
+                : 'bg-destructive/20 text-destructive border-destructive/30'
+            )}
+            variant="outline"
+          >
+            {isActive ? 'Active' : 'Inactive'}
+          </Badge>
+
           <div className="flex items-center gap-3">
-            <Avatar className={cn('w-10 h-10', ring)}>
+            <Avatar className={cn('w-12 h-12', ring)}>
               <AvatarImage src={avatarUrl} alt={data.fullName} />
               <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div>
+            <div className="pr-16">
               <p className="font-bold text-foreground text-sm">{name}</p>
-              <Badge className={cn('text-[9px] mt-0.5', badge)}>{data.rank}</Badge>
+              <p className="text-[10px] text-muted-foreground font-mono">{data.memberId}</p>
             </div>
           </div>
         </div>
 
-        {/* Details Grid */}
-        <div className="p-3 space-y-2 text-xs">
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <User className="h-3.5 w-3.5 text-primary" />
-            <span className="text-muted-foreground flex-1">Member ID</span>
-            <span className="font-mono font-semibold text-foreground">{data.memberId}</span>
+        {/* Section B: Core Info - 2x2 Grid */}
+        <div className="p-3 grid grid-cols-2 gap-2 text-xs border-b border-border/50">
+          <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Sponsor</span>
+            <span className="font-mono font-semibold text-primary truncate">{sponsorDisplay}</span>
           </div>
-
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <Users className="h-3.5 w-3.5 text-chart-2" />
-            <span className="text-muted-foreground flex-1">Parent ID</span>
-            <span className="font-mono font-semibold text-primary">{data.parentId || 'Root'}</span>
+          
+          <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Joined</span>
+            <span className="font-medium text-foreground">{formattedJoiningDate || 'N/A'}</span>
           </div>
-
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <MapPin className="h-3.5 w-3.5 text-chart-3" />
-            <span className="text-muted-foreground flex-1">Position</span>
-            <Badge variant="outline" className="text-[9px] capitalize font-medium">
+          
+          <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Rank</span>
+            <Badge className={cn('text-[9px] w-fit', badge)}>{data.rank || 'N/A'}</Badge>
+          </div>
+          
+          <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Position</span>
+            <Badge variant="outline" className="text-[9px] capitalize w-fit font-medium">
               {data.position === 'root' ? 'Root' : `${data.position} Leg`}
             </Badge>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-            <Award className="h-3.5 w-3.5 text-chart-4" />
-            <span className="text-muted-foreground flex-1">Rank</span>
-            <span className="font-semibold text-foreground">{data.rank}</span>
+        {/* Section C: Direct Business Stats */}
+        <div className="p-3 bg-muted/40">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Direct Business
+            </span>
           </div>
-
-          {data.joiningDate && (
-            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-              <Calendar className="h-3.5 w-3.5 text-chart-1" />
-              <span className="text-muted-foreground flex-1">Joined</span>
-              <span className="font-medium text-foreground">
-                {new Date(data.joiningDate).toLocaleDateString()}
-              </span>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {/* Left Leg Stats */}
+            <div className="p-2 bg-background/60 rounded-lg border border-border/30">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1.5 text-center">Left Leg</p>
+              <div className="flex justify-center gap-3">
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-chart-2" />
+                  <span className="text-xs font-bold text-chart-2">{data.leftDirectActive ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <XCircle className="h-3 w-3 text-destructive" />
+                  <span className="text-xs font-bold text-destructive">{data.leftDirectInactive ?? 0}</span>
+                </div>
+              </div>
             </div>
-          )}
 
-          {data.directSponsors !== undefined && (
-            <div className="flex items-center gap-2 py-1.5 border-b border-border/30">
-              <Users className="h-3.5 w-3.5 text-primary" />
-              <span className="text-muted-foreground flex-1">Direct Sponsors</span>
-              <span className="font-bold text-foreground">{data.directSponsors}</span>
+            {/* Right Leg Stats */}
+            <div className="p-2 bg-background/60 rounded-lg border border-border/30">
+              <p className="text-[10px] font-medium text-muted-foreground mb-1.5 text-center">Right Leg</p>
+              <div className="flex justify-center gap-3">
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-chart-2" />
+                  <span className="text-xs font-bold text-chart-2">{data.rightDirectActive ?? 0}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <XCircle className="h-3 w-3 text-destructive" />
+                  <span className="text-xs font-bold text-destructive">{data.rightDirectInactive ?? 0}</span>
+                </div>
+              </div>
             </div>
-          )}
-
-          {data.totalDownline !== undefined && (
-            <div className="flex items-center gap-2 py-1.5">
-              <Users className="h-3.5 w-3.5 text-chart-2" />
-              <span className="text-muted-foreground flex-1">Total Downline</span>
-              <span className="font-bold text-foreground">{data.totalDownline}</span>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Footer hint */}
-        <div className="px-3 py-2 bg-muted/30 border-t border-border/30">
+        <div className="px-3 py-2 bg-muted/20 border-t border-border/30">
           <p className="text-[10px] text-muted-foreground text-center">
             Click to view this member's network
           </p>
