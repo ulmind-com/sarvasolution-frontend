@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Users, ChevronLeft, ChevronRight, UserX } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, UserX, Search, Download, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
 
 interface TeamMember {
   _id: string;
@@ -57,6 +59,7 @@ const DirectTeam = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchDirectTeam = async (page: number, leg: 'left' | 'right') => {
     setIsLoading(true);
@@ -118,6 +121,111 @@ const DirectTeam = () => {
     return rankColors[normalizedRank] || rankColors.starter;
   };
 
+  // Filter data based on search query
+  const filteredData = data.filter((member) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      member.fullName.toLowerCase().includes(query) ||
+      member.memberId.toLowerCase().includes(query) ||
+      member.email.toLowerCase().includes(query)
+    );
+  });
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['Member ID', 'Full Name', 'Email', 'Rank', 'Business Volume', 'Status', 'Joining Date'];
+    const csvData = filteredData.map(member => [
+      member.memberId,
+      member.fullName,
+      member.email,
+      member.currentRank || 'Starter',
+      member.totalBV || 0,
+      member.status || 'Inactive',
+      member.joiningDate ? format(new Date(member.joiningDate), 'dd MMM yyyy') : '—'
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `direct-team-${activeLeg}-leg-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  // Export to PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`My Direct Team - ${activeLeg === 'left' ? 'Left' : 'Right'} Leg`, pageWidth / 2, 20, { align: 'center' });
+    
+    // Date
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, pageWidth / 2, 28, { align: 'center' });
+    
+    // Table headers
+    const startY = 40;
+    const rowHeight = 10;
+    const colWidths = [30, 45, 55, 25, 20, 20];
+    const headers = ['Member ID', 'Name', 'Email', 'Rank', 'BV', 'Status'];
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setFillColor(240, 240, 240);
+    doc.rect(10, startY - 6, pageWidth - 20, rowHeight, 'F');
+    
+    let xPos = 12;
+    headers.forEach((header, i) => {
+      doc.text(header, xPos, startY);
+      xPos += colWidths[i];
+    });
+    
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    filteredData.forEach((member, index) => {
+      const y = startY + (index + 1) * rowHeight;
+      
+      if (y > doc.internal.pageSize.getHeight() - 20) {
+        doc.addPage();
+        return;
+      }
+      
+      xPos = 12;
+      const rowData = [
+        member.memberId,
+        member.fullName.substring(0, 20),
+        member.email.substring(0, 25),
+        (member.currentRank || 'Starter').substring(0, 12),
+        String(member.totalBV || 0),
+        member.status || 'Inactive'
+      ];
+      
+      rowData.forEach((cell, i) => {
+        doc.text(cell, xPos, y);
+        xPos += colWidths[i];
+      });
+    });
+    
+    // Total count
+    const totalY = startY + (filteredData.length + 2) * rowHeight;
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total Members: ${filteredData.length}`, 12, Math.min(totalY, doc.internal.pageSize.getHeight() - 20));
+    
+    doc.save(`direct-team-${activeLeg}-leg-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
   const renderTableContent = () => {
     if (isLoading) {
       return Array.from({ length: 5 }).map((_, i) => (
@@ -149,7 +257,7 @@ const DirectTeam = () => {
       );
     }
 
-    if (data.length === 0) {
+    if (filteredData.length === 0) {
       return (
         <TableRow>
           <TableCell colSpan={5} className="text-center py-16">
@@ -158,9 +266,14 @@ const DirectTeam = () => {
                 <UserX className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <p className="font-medium text-foreground">No members found</p>
+                <p className="font-medium text-foreground">
+                  {searchQuery ? 'No matching members found' : 'No members found'}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  No members in your {activeLeg === 'left' ? 'Left' : 'Right'} Leg yet
+                  {searchQuery 
+                    ? `No members match "${searchQuery}" in your ${activeLeg === 'left' ? 'Left' : 'Right'} Leg`
+                    : `No members in your ${activeLeg === 'left' ? 'Left' : 'Right'} Leg yet`
+                  }
                 </p>
               </div>
             </div>
@@ -169,7 +282,7 @@ const DirectTeam = () => {
       );
     }
 
-    return data.map((member) => (
+    return filteredData.map((member) => (
       <TableRow key={member._id} className="hover:bg-muted/50">
         {/* Member Profile */}
         <TableCell>
@@ -243,7 +356,7 @@ const DirectTeam = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Users className="h-6 w-6 text-primary" />
@@ -253,27 +366,67 @@ const DirectTeam = () => {
             Total Directs: <span className="font-semibold text-foreground">{pagination?.total || 0}</span>
           </p>
         </div>
+        
+        {/* Export Buttons */}
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportToCSV}
+            disabled={filteredData.length === 0 || isLoading}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">CSV</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportToPDF}
+            disabled={filteredData.length === 0 || isLoading}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
+          </Button>
+        </div>
       </div>
 
       {/* Tabs & Table Card */}
       <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <Tabs value={activeLeg} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full max-w-xs grid-cols-2 bg-muted">
-              <TabsTrigger 
-                value="left" 
-                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
-                Left Leg
-              </TabsTrigger>
-              <TabsTrigger 
-                value="right"
-                className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
-                Right Leg
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <CardHeader className="pb-3 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <Tabs value={activeLeg} onValueChange={handleTabChange} className="w-full sm:w-auto">
+              <TabsList className="grid w-full max-w-xs grid-cols-2 bg-muted">
+                <TabsTrigger 
+                  value="left" 
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Left Leg
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="right"
+                  className="data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Right Leg
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by name, ID, or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
