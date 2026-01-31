@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, RefreshCw, Users } from 'lucide-react';
+import { AlertCircle, RefreshCw, Users, ArrowUp, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
@@ -15,8 +15,11 @@ interface TreeApiResponse {
   data: TreeNodeData;
 }
 
-const fetchTreeData = async (depth: number = 3): Promise<TreeNodeData> => {
-  const response = await api.get<TreeApiResponse>(`/api/v1/user/tree_view?depth=${depth}`);
+const fetchTreeData = async (depth: number = 3, memberId?: string): Promise<TreeNodeData> => {
+  const endpoint = memberId 
+    ? `/api/v1/user/tree/${memberId}?depth=${depth}`
+    : `/api/v1/user/tree_view?depth=${depth}`;
+  const response = await api.get<TreeApiResponse>(endpoint);
   return response.data.data;
 };
 
@@ -37,7 +40,7 @@ const TreeLegend = () => (
     </div>
     <div className="flex items-center gap-1.5">
       <div className="w-3 h-3 rounded-full bg-chart-4 ring-2 ring-chart-4/50" />
-      <span className="text-muted-foreground">Diamond</span>
+      <span className="text-muted-foreground">Crown</span>
     </div>
     <div className="flex items-center gap-1.5">
       <div className="w-3 h-3 rounded-full bg-chart-2 ring-2 ring-chart-2/50" />
@@ -49,24 +52,74 @@ const TreeLegend = () => (
 const TreeSkeleton = () => (
   <div className="flex flex-col items-center py-8">
     <Skeleton className="w-16 h-16 rounded-full" />
-    <Skeleton className="w-16 h-3 mt-2 rounded" />
-    <Skeleton className="w-12 h-4 mt-1 rounded-full" />
+    <Skeleton className="w-20 h-12 mt-2 rounded-lg" />
+    <Skeleton className="w-14 h-5 mt-1 rounded-full" />
     
-    <div className="flex gap-16 mt-10">
+    <div className="flex gap-16 mt-12">
       <div className="flex flex-col items-center">
         <Skeleton className="w-14 h-14 rounded-full" />
-        <Skeleton className="w-14 h-3 mt-2 rounded" />
+        <Skeleton className="w-16 h-10 mt-2 rounded-lg" />
       </div>
       <div className="flex flex-col items-center">
         <Skeleton className="w-14 h-14 rounded-full" />
-        <Skeleton className="w-14 h-3 mt-2 rounded" />
+        <Skeleton className="w-16 h-10 mt-2 rounded-lg" />
       </div>
     </div>
   </div>
 );
 
+// Breadcrumb for navigation history
+const NavigationBreadcrumb = ({ 
+  history, 
+  onNavigate,
+  onReset 
+}: { 
+  history: Array<{ id: string; name: string }>;
+  onNavigate: (id: string) => void;
+  onReset: () => void;
+}) => {
+  if (history.length === 0) return null;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-center gap-2 flex-wrap"
+    >
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onReset}
+        className="gap-1.5 h-8 bg-background/80 backdrop-blur-sm"
+      >
+        <Home className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">My Network</span>
+      </Button>
+      
+      {history.map((item, index) => (
+        <div key={item.id} className="flex items-center gap-2">
+          <span className="text-muted-foreground">/</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onNavigate(item.id)}
+            className={cn(
+              'h-8 px-2',
+              index === history.length - 1 && 'text-primary font-medium'
+            )}
+          >
+            {item.name}
+          </Button>
+        </div>
+      ))}
+    </motion.div>
+  );
+};
+
 const GenealogyTree = () => {
   const [depth, setDepth] = useState(3);
+  const [currentRootId, setCurrentRootId] = useState<string | undefined>(undefined);
+  const [navigationHistory, setNavigationHistory] = useState<Array<{ id: string; name: string }>>([]);
 
   const { 
     data: treeData, 
@@ -76,21 +129,70 @@ const GenealogyTree = () => {
     refetch,
     isFetching 
   } = useQuery({
-    queryKey: ['genealogyTree', depth],
-    queryFn: () => fetchTreeData(depth),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: ['genealogyTree', depth, currentRootId],
+    queryFn: () => fetchTreeData(depth, currentRootId),
+    staleTime: 5 * 60 * 1000,
     retry: 2,
   });
 
+  const handleNodeClick = (memberId: string) => {
+    // Don't navigate if clicking on current root
+    if (memberId === currentRootId) return;
+    
+    // Find the node name from current tree data
+    const findNodeName = (node: TreeNodeData | null, targetId: string): string | null => {
+      if (!node) return null;
+      if (node.memberId === targetId) return node.fullName;
+      return findNodeName(node.left, targetId) || findNodeName(node.right, targetId);
+    };
+
+    const nodeName = treeData ? findNodeName(treeData, memberId) : memberId;
+    
+    setNavigationHistory(prev => [...prev, { id: memberId, name: nodeName || memberId }]);
+    setCurrentRootId(memberId);
+  };
+
+  const handleNavigateToHistoryItem = (memberId: string) => {
+    const itemIndex = navigationHistory.findIndex(item => item.id === memberId);
+    if (itemIndex !== -1) {
+      setNavigationHistory(prev => prev.slice(0, itemIndex + 1));
+      setCurrentRootId(memberId);
+    }
+  };
+
+  const handleResetToMyNetwork = () => {
+    setNavigationHistory([]);
+    setCurrentRootId(undefined);
+  };
+
+  const isDrilledDown = currentRootId !== undefined;
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Genealogy Tree</h1>
-          <p className="text-muted-foreground">View your binary network structure</p>
+          <p className="text-muted-foreground">
+            {isDrilledDown 
+              ? 'Viewing member network - click nodes to drill deeper'
+              : 'View your binary network structure'
+            }
+          </p>
         </div>
         
         <div className="flex items-center gap-2">
+          {isDrilledDown && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetToMyNetwork}
+              className="gap-2"
+            >
+              <ArrowUp className="h-4 w-4" />
+              Back to Top
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -104,13 +206,25 @@ const GenealogyTree = () => {
         </div>
       </div>
 
+      {/* Navigation Breadcrumb */}
+      {navigationHistory.length > 0 && (
+        <NavigationBreadcrumb 
+          history={navigationHistory}
+          onNavigate={handleNavigateToHistoryItem}
+          onReset={handleResetToMyNetwork}
+        />
+      )}
+
+      {/* Main Tree Card */}
       <Card className="border-border overflow-hidden">
-        <CardHeader className="border-b border-border bg-card/50 backdrop-blur-sm flex flex-row items-center justify-between">
+        <CardHeader className="border-b border-border bg-card/50 backdrop-blur-sm flex flex-row items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <Users className="h-5 w-5 text-primary" />
             </div>
-            <CardTitle className="text-foreground">Your Network (Binary Tree)</CardTitle>
+            <CardTitle className="text-foreground">
+              {isDrilledDown ? 'Member Network' : 'Your Network'} (Binary Tree)
+            </CardTitle>
           </div>
           <TreeLegend />
         </CardHeader>
@@ -118,39 +232,63 @@ const GenealogyTree = () => {
         <CardContent className="p-0">
           <ScrollArea className="w-full">
             <div className="min-w-[700px] p-8 flex justify-center">
-              {isLoading ? (
-                <TreeSkeleton />
-              ) : isError ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center py-12 text-center"
-                >
-                  <div className="p-4 rounded-full bg-destructive/10 mb-4">
-                    <AlertCircle className="h-8 w-8 text-destructive" />
-                  </div>
-                  <h3 className="font-semibold text-foreground mb-1">Failed to load tree</h3>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                    {(error as Error)?.message || 'Unable to fetch your network data. Please try again.'}
-                  </p>
-                  <Button onClick={() => refetch()} variant="outline" size="sm">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Try Again
-                  </Button>
-                </motion.div>
-              ) : treeData ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <TreeNode node={treeData} level={0} maxLevel={depth} />
-                </motion.div>
-              ) : (
-                <div className="py-12 text-center text-muted-foreground">
-                  No network data available
-                </div>
-              )}
+              <AnimatePresence mode="wait">
+                {isLoading ? (
+                  <motion.div
+                    key="skeleton"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <TreeSkeleton />
+                  </motion.div>
+                ) : isError ? (
+                  <motion.div
+                    key="error"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col items-center py-12 text-center"
+                  >
+                    <div className="p-4 rounded-full bg-destructive/10 mb-4">
+                      <AlertCircle className="h-8 w-8 text-destructive" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-1">Failed to load tree</h3>
+                    <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                      {(error as Error)?.message || 'Unable to fetch network data. Please try again.'}
+                    </p>
+                    <Button onClick={() => refetch()} variant="outline" size="sm">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Try Again
+                    </Button>
+                  </motion.div>
+                ) : treeData ? (
+                  <motion.div
+                    key={currentRootId || 'root'}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <TreeNode 
+                      node={treeData} 
+                      level={0} 
+                      maxLevel={depth} 
+                      onNodeClick={handleNodeClick}
+                      isRoot
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-12 text-center text-muted-foreground"
+                  >
+                    No network data available
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
