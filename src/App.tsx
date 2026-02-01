@@ -17,6 +17,7 @@ import DashboardLayout from "./components/layout/DashboardLayout";
 import Overview from "./pages/dashboard/Overview";
 import Genealogy from "./pages/dashboard/Genealogy";
 import DirectTeam from "./pages/dashboard/DirectTeam";
+import CompleteTeam from "./pages/dashboard/CompleteTeam";
 import Store from "./pages/dashboard/Store";
 import Wallet from "./pages/dashboard/Wallet";
 import UpdateProfile from "./pages/dashboard/UpdateProfile";
@@ -77,6 +78,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <DirectTeam />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/complete-team" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <CompleteTeam />
           </DashboardLayout>
         </ProtectedRoute>
       } />
