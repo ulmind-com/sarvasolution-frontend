@@ -54,7 +54,8 @@ const menuItems: MenuItem[] = [
     icon: Users,
     children: [
       { path: '/dashboard/genealogy', label: 'Genealogy Tree' },
-      { path: '/dashboard/direct-team', label: 'My Direct Team' }
+      { path: '/dashboard/direct-team', label: 'My Direct Team' },
+      { path: '/dashboard/complete-team', label: 'My Downline' }
     ]
   },
   { path: '/dashboard/welcome-letter', label: 'Welcome Letter', icon: Award },
