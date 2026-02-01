@@ -28,6 +28,9 @@ export interface D3TreeNodeDatum {
     leftDirectInactive?: number;
     rightDirectActive?: number;
     rightDirectInactive?: number;
+    // Total Team Counts
+    leftTeamCount?: number;
+    rightTeamCount?: number;
   };
   children?: D3TreeNodeDatum[];
 }
@@ -77,6 +80,9 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       leftDirectInactive: node.leftDirectInactive ?? 0,
       rightDirectActive: node.rightDirectActive ?? 0,
       rightDirectInactive: node.rightDirectInactive ?? 0,
+      // Total Team Counts
+      leftTeamCount: node.leftTeamCount ?? 0,
+      rightTeamCount: node.rightTeamCount ?? 0,
     },
     children: children.length > 0 ? children : undefined,
   };
@@ -250,7 +256,13 @@ const HoverTooltip = ({
           <div className="grid grid-cols-2 gap-3">
             {/* Left Leg Stats */}
             <div className="p-2 bg-background/60 rounded-lg border border-border/30">
-              <p className="text-[10px] font-medium text-muted-foreground mb-1.5 text-center">Left Leg</p>
+              <div className="flex justify-between items-center mb-1.5">
+                <p className="text-[10px] font-medium text-muted-foreground">Left Leg</p>
+                {/* Total Team Count */}
+                <span className="text-[10px] font-bold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded">
+                  <Users className="w-3 h-3" /> {data.leftTeamCount ?? 0}
+                </span>
+              </div>
               <div className="flex justify-center gap-3">
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-chart-2" />
@@ -265,7 +277,13 @@ const HoverTooltip = ({
 
             {/* Right Leg Stats */}
             <div className="p-2 bg-background/60 rounded-lg border border-border/30">
-              <p className="text-[10px] font-medium text-muted-foreground mb-1.5 text-center">Right Leg</p>
+              <div className="flex justify-between items-center mb-1.5">
+                <p className="text-[10px] font-medium text-muted-foreground">Right Leg</p>
+                {/* Total Team Count */}
+                <span className="text-[10px] font-bold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded">
+                  <Users className="w-3 h-3" /> {data.rightTeamCount ?? 0}
+                </span>
+              </div>
               <div className="flex justify-center gap-3">
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-chart-2" />
