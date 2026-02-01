@@ -29,6 +29,9 @@ export interface TreeNodeData {
   leftDirectInactive?: number;
   rightDirectActive?: number;
   rightDirectInactive?: number;
+  // Total Team Counts
+  leftTeamCount?: number;
+  rightTeamCount?: number;
   left: TreeNodeData | null;
   right: TreeNodeData | null;
 }
