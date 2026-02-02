@@ -263,7 +263,7 @@ const HoverTooltip = ({
             <div className="p-2 bg-background/60 rounded-lg border border-border/30 space-y-2">
               {/* Header with Total Team Count */}
               <div className="flex justify-between items-center">
-                <p className="text-[10px] font-medium text-muted-foreground">Left Leg</p>
+                <p className="text-[10px] font-medium text-muted-foreground">Left Side PV</p>
                 <span className="text-[10px] font-bold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded">
                   <Users className="w-3 h-3" /> {data.leftTeamCount ?? 0}
                 </span>
@@ -298,7 +298,7 @@ const HoverTooltip = ({
             <div className="p-2 bg-background/60 rounded-lg border border-border/30 space-y-2">
               {/* Header with Total Team Count */}
               <div className="flex justify-between items-center">
-                <p className="text-[10px] font-medium text-muted-foreground">Right Leg</p>
+                <p className="text-[10px] font-medium text-muted-foreground">Right Side PV</p>
                 <span className="text-[10px] font-bold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded">
                   <Users className="w-3 h-3" /> {data.rightTeamCount ?? 0}
                 </span>
