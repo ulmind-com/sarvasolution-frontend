@@ -11,29 +11,48 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Check, X, Clock, Loader2, RefreshCw, CreditCard } from 'lucide-react';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { 
+  Check, 
+  X, 
+  Clock, 
+  Loader2, 
+  RefreshCw, 
+  CreditCard, 
+  MoreHorizontal, 
+  Phone, 
+  Mail, 
+  Calendar,
+  Wallet
+} from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { format } from 'date-fns';
 
 interface PayoutRequest {
   _id: string;
-  userId: {
-    _id: string;
-    memberId: string;
-    name: string;
-    email: string;
-  };
-  amount: number;
-  status: 'pending' | 'processed' | 'rejected';
+  memberId: string;
+  grossAmount: number;
+  netAmount: number;
+  status: 'pending' | 'completed' | 'rejected' | 'processing' | 'failed';
+  payoutType: string;
+  scheduledFor: string;
   createdAt: string;
   processedAt?: string;
+  userId: {
+    _id?: string;
+    fullName?: string;
+    name?: string;
+    email: string;
+    phone?: number;
+    memberId?: string;
+  };
 }
 
 interface PayoutStats {
@@ -91,15 +110,15 @@ const PayoutRequests = () => {
     
     const pending = payoutList.filter(p => p.status === 'pending');
     const processedToday = payoutList.filter(
-      p => p.status === 'processed' && p.processedAt && new Date(p.processedAt).toDateString() === today
+      p => p.status === 'completed' && p.processedAt && new Date(p.processedAt).toDateString() === today
     );
     const rejected = payoutList.filter(p => p.status === 'rejected');
 
     setStats({
       pendingCount: pending.length,
-      pendingAmount: pending.reduce((sum, p) => sum + p.amount, 0),
+      pendingAmount: pending.reduce((sum, p) => sum + (p.netAmount || p.grossAmount || 0), 0),
       processedToday: processedToday.length,
-      processedTodayAmount: processedToday.reduce((sum, p) => sum + p.amount, 0),
+      processedTodayAmount: processedToday.reduce((sum, p) => sum + (p.netAmount || p.grossAmount || 0), 0),
       rejectedCount: rejected.length,
     });
   };
@@ -169,13 +188,64 @@ const PayoutRequests = () => {
     }
   };
 
+  const handleMarkAsPaid = async (payoutId: string) => {
+    toast.info('Mark as Paid functionality will be available soon');
+  };
+
+  const handleRejectSingle = async (payoutId: string) => {
+    toast.info('Reject functionality will be available soon');
+  };
+
   const getStatusBadge = (status: string) => {
-    const styles = {
-      pending: 'bg-chart-4/20 text-chart-4 border-chart-4/30',
-      processed: 'bg-primary/20 text-primary border-primary/30',
-      rejected: 'bg-destructive/20 text-destructive border-destructive/30',
+    const config: Record<string, { className: string; label: string }> = {
+      pending: { 
+        className: 'bg-chart-4/20 text-chart-4 border-chart-4/30', 
+        label: 'Pending' 
+      },
+      completed: { 
+        className: 'bg-primary/20 text-primary border-primary/30', 
+        label: 'Completed' 
+      },
+      processing: { 
+        className: 'bg-chart-2/20 text-chart-2 border-chart-2/30', 
+        label: 'Processing' 
+      },
+      rejected: { 
+        className: 'bg-destructive/20 text-destructive border-destructive/30', 
+        label: 'Rejected' 
+      },
+      failed: { 
+        className: 'bg-destructive/20 text-destructive border-destructive/30', 
+        label: 'Failed' 
+      },
     };
-    return styles[status as keyof typeof styles] || styles.pending;
+    return config[status] || config.pending;
+  };
+
+  const formatPayoutType = (type: string) => {
+    if (!type) return 'Withdrawal';
+    return type
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch {
+      return 'N/A';
+    }
+  };
+
+  const formatPhone = (phone?: number) => {
+    if (!phone) return null;
+    const phoneStr = phone.toString();
+    if (phoneStr.startsWith('91') && phoneStr.length > 10) {
+      return `+91 ${phoneStr.slice(2)}`;
+    }
+    return phoneStr;
   };
 
   const pendingPayouts = payouts.filter(p => p.status === 'pending');
@@ -254,23 +324,11 @@ const PayoutRequests = () => {
       </div>
 
       <Card className="border-border">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <CardTitle className="text-foreground">All Withdrawal Requests</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Filter status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processed">Processed</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            
+        <CardHeader className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="text-foreground">All Withdrawal Requests</CardTitle>
             {selectedIds.length > 0 && (
-              <>
+              <div className="flex items-center gap-2">
                 <Button 
                   size="sm" 
                   onClick={handleProcessBulk}
@@ -292,19 +350,45 @@ const PayoutRequests = () => {
                   <X className="h-4 w-4 mr-2" />
                   Reject
                 </Button>
-              </>
+              </div>
             )}
           </div>
+          
+          {/* Status Tabs */}
+          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 sm:w-auto sm:inline-flex">
+              <TabsTrigger value="pending" className="gap-2">
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline">Pending</span>
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="gap-2">
+                <Check className="h-4 w-4" />
+                <span className="hidden sm:inline">Processed</span>
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="gap-2">
+                <X className="h-4 w-4" />
+                <span className="hidden sm:inline">Rejected</span>
+              </TabsTrigger>
+              <TabsTrigger value="all" className="gap-2">
+                <Wallet className="h-4 w-4" />
+                <span className="hidden sm:inline">All</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
+        
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : payouts.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">
-              No withdrawal requests found.
-            </p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Wallet className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground text-sm">
+                No {statusFilter !== 'all' ? statusFilter : ''} withdrawal requests found.
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -317,46 +401,118 @@ const PayoutRequests = () => {
                         disabled={pendingPayouts.length === 0}
                       />
                     </TableHead>
-                    <TableHead className="text-muted-foreground">Member ID</TableHead>
-                    <TableHead className="text-muted-foreground">Name</TableHead>
-                    <TableHead className="text-muted-foreground">Email</TableHead>
+                    <TableHead className="text-muted-foreground">Member Details</TableHead>
+                    <TableHead className="text-muted-foreground">Contact Info</TableHead>
                     <TableHead className="text-right text-muted-foreground">Amount</TableHead>
-                    <TableHead className="text-muted-foreground">Date</TableHead>
+                    <TableHead className="text-muted-foreground">Schedule</TableHead>
                     <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payouts.map((payout) => (
-                    <TableRow key={payout._id} className="border-border">
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.includes(payout._id)}
-                          onCheckedChange={(checked) => handleSelectOne(payout._id, !!checked)}
-                          disabled={payout.status !== 'pending'}
-                        />
-                      </TableCell>
-                      <TableCell className="font-mono text-foreground">
-                        {payout.userId?.memberId || 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-foreground">
-                        {payout.userId?.name || 'Unknown'}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {payout.userId?.email || 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-foreground">
-                        ₹{payout.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(payout.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={getStatusBadge(payout.status)}>
-                          {payout.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {payouts.map((payout) => {
+                    const statusConfig = getStatusBadge(payout.status);
+                    const displayName = payout.userId?.fullName || payout.userId?.name || 'Unknown';
+                    const displayMemberId = payout.memberId || payout.userId?.memberId || 'N/A';
+                    const phone = formatPhone(payout.userId?.phone);
+                    
+                    return (
+                      <TableRow key={payout._id} className="border-border">
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.includes(payout._id)}
+                            onCheckedChange={(checked) => handleSelectOne(payout._id, !!checked)}
+                            disabled={payout.status !== 'pending'}
+                          />
+                        </TableCell>
+                        
+                        {/* Member Details */}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="font-medium text-foreground">{displayName}</p>
+                            <p className="text-xs font-mono text-muted-foreground">{displayMemberId}</p>
+                          </div>
+                        </TableCell>
+                        
+                        {/* Contact Info */}
+                        <TableCell>
+                          <div className="space-y-1">
+                            {phone && (
+                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                <span>{phone}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              <span className="truncate max-w-[150px]">{payout.userId?.email || 'N/A'}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        
+                        {/* Amount */}
+                        <TableCell className="text-right">
+                          <div className="space-y-1">
+                            <p className="font-bold text-primary">
+                              ₹{(payout.netAmount || payout.grossAmount || 0).toLocaleString()}
+                            </p>
+                            {payout.grossAmount && payout.netAmount && payout.grossAmount !== payout.netAmount && (
+                              <p className="text-xs text-muted-foreground">
+                                Gross: ₹{payout.grossAmount.toLocaleString()}
+                              </p>
+                            )}
+                            <Badge variant="outline" className="text-xs">
+                              {formatPayoutType(payout.payoutType)}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        
+                        {/* Schedule */}
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            <span>{formatDate(payout.scheduledFor || payout.createdAt)}</span>
+                          </div>
+                        </TableCell>
+                        
+                        {/* Status */}
+                        <TableCell>
+                          <Badge variant="outline" className={statusConfig.className}>
+                            {statusConfig.label}
+                          </Badge>
+                        </TableCell>
+                        
+                        {/* Actions */}
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={() => handleMarkAsPaid(payout._id)}
+                                disabled={payout.status !== 'pending'}
+                              >
+                                <Check className="h-4 w-4 mr-2" />
+                                Mark as Paid
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleRejectSingle(payout._id)}
+                                disabled={payout.status !== 'pending'}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Reject
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
