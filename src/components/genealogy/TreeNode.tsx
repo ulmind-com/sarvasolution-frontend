@@ -24,7 +24,12 @@ export interface TreeNodeData {
   directSponsors?: number;
   isActive?: boolean;
   status?: string;
-  // Direct Business Stats
+  // Complete Team Stats (Total Business)
+  leftCompleteActive?: number;
+  leftCompleteInactive?: number;
+  rightCompleteActive?: number;
+  rightCompleteInactive?: number;
+  // Legacy Direct Business Stats (for backwards compatibility)
   leftDirectActive?: number;
   leftDirectInactive?: number;
   rightDirectActive?: number;
@@ -32,6 +37,12 @@ export interface TreeNodeData {
   // Total Team Counts
   leftTeamCount?: number;
   rightTeamCount?: number;
+  // Business Volume
+  leftLegBV?: number;
+  rightLegBV?: number;
+  // Stars
+  leftLegStars?: number;
+  rightLegStars?: number;
   left: TreeNodeData | null;
   right: TreeNodeData | null;
 }
