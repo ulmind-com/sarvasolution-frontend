@@ -22,30 +22,42 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Wallet as WalletIcon, ArrowUpRight, ArrowDownRight, Clock, Loader2, AlertCircle, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Wallet as WalletIcon, ArrowUpRight, ArrowDownRight, Clock, Loader2, AlertCircle, Info, CheckCircle, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
-interface PayoutRequest {
+interface TransactionHistory {
   _id: string;
-  amount: number;
-  status: 'pending' | 'processed' | 'rejected';
+  payoutType: string;
+  grossAmount: number;
+  adminCharge: number;
+  tdsDeducted: number;
+  netAmount: number;
+  status: 'completed' | 'pending' | 'rejected';
   createdAt: string;
-  processedAt?: string;
 }
 
-interface WalletData {
-  availableBalance: number;
+interface WalletInfo {
   totalEarnings: number;
-  pendingWithdrawal?: number;
-  pendingWithdrawals?: number;
-  payoutHistory?: PayoutRequest[];
+  availableBalance: number;
+  withdrawnAmount: number;
+  pendingWithdrawal: number;
+}
+
+interface WalletApiResponse {
+  wallet: WalletInfo;
+  history: TransactionHistory[];
 }
 
 const Wallet = () => {
   const { user } = useAuthStore();
-  const [walletData, setWalletData] = useState<WalletData | null>(null);
-  const [payoutHistory, setPayoutHistory] = useState<PayoutRequest[]>([]);
+  const [walletData, setWalletData] = useState<WalletApiResponse | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,32 +73,36 @@ const Wallet = () => {
   const fetchWalletData = async () => {
     setIsLoading(true);
     try {
-      // Fetch wallet balance
-      const walletResponse = await api.get('/api/v1/user/wallet');
-      const walletInfo = walletResponse.data.data || walletResponse.data;
-      setWalletData(walletInfo);
-
-      // Check if payoutHistory is included in wallet response
-      if (walletInfo.payoutHistory && Array.isArray(walletInfo.payoutHistory)) {
-        setPayoutHistory(walletInfo.payoutHistory);
+      const response = await api.get('/api/v1/user/wallet');
+      const data = response.data.data || response.data;
+      
+      // Handle both new and old API response structures
+      if (data.wallet) {
+        setWalletData(data);
       } else {
-        // Fetch payout history separately if not included
-        try {
-          const historyResponse = await api.get('/api/v1/user/payouts');
-          setPayoutHistory(historyResponse.data.data || historyResponse.data || []);
-        } catch {
-          // If payout history endpoint doesn't exist, use empty array
-          setPayoutHistory([]);
-        }
+        // Fallback for old structure
+        setWalletData({
+          wallet: {
+            totalEarnings: data.totalEarnings || 0,
+            availableBalance: data.availableBalance || 0,
+            withdrawnAmount: data.withdrawnAmount || 0,
+            pendingWithdrawal: data.pendingWithdrawal || data.pendingWithdrawals || 0,
+          },
+          history: data.history || data.payoutHistory || [],
+        });
       }
     } catch (error: any) {
       console.error('Error fetching wallet data:', error);
       // Use fallback data from user object if available
       if (user?.wallet) {
         setWalletData({
-          availableBalance: user.wallet.availableBalance || 0,
-          totalEarnings: user.wallet.totalEarnings || 0,
-          pendingWithdrawal: user.wallet.pendingWithdrawal || 0,
+          wallet: {
+            totalEarnings: user.wallet.totalEarnings || 0,
+            availableBalance: user.wallet.availableBalance || 0,
+            withdrawnAmount: (user.wallet as any).withdrawnAmount || 0,
+            pendingWithdrawal: user.wallet.pendingWithdrawal || 0,
+          },
+          history: [],
         });
       }
     } finally {
@@ -94,11 +110,18 @@ const Wallet = () => {
     }
   };
 
+  const formatPayoutType = (type: string): string => {
+    return type
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const getStatusBadge = (status: string) => {
     const styles = {
       pending: 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30',
+      completed: 'bg-green-500/20 text-green-600 border-green-500/30',
       processed: 'bg-green-500/20 text-green-600 border-green-500/30',
-      approved: 'bg-green-500/20 text-green-600 border-green-500/30',
       rejected: 'bg-red-500/20 text-red-600 border-red-500/30',
     };
     return styles[status as keyof typeof styles] || styles.pending;
@@ -115,7 +138,7 @@ const Wallet = () => {
       return `Minimum withdrawal amount is ₹${MIN_WITHDRAWAL}`;
     }
     
-    if (walletData && amount > walletData.availableBalance) {
+    if (walletData && amount > walletData.wallet.availableBalance) {
       return 'Insufficient balance';
     }
 
@@ -164,10 +187,11 @@ const Wallet = () => {
     }
   };
 
-  const availableBalance = walletData?.availableBalance || 0;
-  const totalEarnings = walletData?.totalEarnings || 0;
-  const pendingAmount = walletData?.pendingWithdrawal || walletData?.pendingWithdrawals || 
-    payoutHistory.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+  const availableBalance = walletData?.wallet.availableBalance || 0;
+  const totalEarnings = walletData?.wallet.totalEarnings || 0;
+  const pendingAmount = walletData?.wallet.pendingWithdrawal || 0;
+  const withdrawnAmount = walletData?.wallet.withdrawnAmount || 0;
+  const history = walletData?.history || [];
 
   if (isLoading) {
     return (
@@ -179,34 +203,126 @@ const Wallet = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Wallet</h1>
-        <p className="text-muted-foreground">Manage your earnings and withdrawals</p>
+      {/* Header with Withdraw Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Wallet</h1>
+          <p className="text-muted-foreground">Manage your earnings and withdrawals</p>
+        </div>
+        
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" disabled={availableBalance < MIN_WITHDRAWAL}>
+              <Banknote className="mr-2 h-5 w-5" />
+              Request Payout
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Withdraw Funds</DialogTitle>
+              <DialogDescription>
+                Enter the amount you want to withdraw. Minimum ₹{MIN_WITHDRAWAL}.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount" className="text-foreground">Amount (₹)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder={`Min ₹${MIN_WITHDRAWAL}`}
+                  value={withdrawAmount}
+                  onChange={handleAmountChange}
+                  className={`bg-card border-input ${error ? 'border-destructive' : ''}`}
+                  min={MIN_WITHDRAWAL}
+                  max={availableBalance}
+                />
+                {error && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {error}
+                  </p>
+                )}
+              </div>
+              
+              <div className="bg-accent p-3 rounded-lg">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Available Balance</span>
+                  <span className="font-medium text-foreground">₹{availableBalance.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-muted-foreground">After Withdrawal</span>
+                  <span className="font-medium text-accent-foreground">
+                    ₹{Math.max(0, availableBalance - (parseFloat(withdrawAmount) || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
+                <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Processing occurs every Friday at 11 AM IST. Minimum withdrawal amount is ₹{MIN_WITHDRAWAL}.
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleWithdraw} 
+                disabled={isWithdrawing || !!error || !withdrawAmount}
+              >
+                {isWithdrawing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Submit Request'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Balance Cards */}
+      {availableBalance < MIN_WITHDRAWAL && (
+        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+          <Info className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            Minimum balance of ₹{MIN_WITHDRAWAL} required to request a payout.
+          </p>
+        </div>
+      )}
+
+      {/* Balance Cards - 4 Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-border bg-green-600 text-white">
+        {/* Available Balance - Highlighted */}
+        <Card className="border-primary/50 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium opacity-90">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Available Balance
             </CardTitle>
-            <WalletIcon className="h-5 w-5 opacity-80" />
+            <WalletIcon className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-3xl font-bold text-primary">
               ₹{availableBalance.toLocaleString()}
             </div>
-            <p className="text-xs opacity-80 mt-1">Ready for withdrawal</p>
+            <p className="text-xs text-muted-foreground mt-1">Ready for withdrawal</p>
           </CardContent>
         </Card>
 
+        {/* Total Earnings */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Earnings
             </CardTitle>
-            <ArrowUpRight className="h-5 w-5 text-primary" />
+            <ArrowUpRight className="h-5 w-5 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">
@@ -216,160 +332,131 @@ const Wallet = () => {
           </CardContent>
         </Card>
 
+        {/* Pending Withdrawals */}
         <Card className="border-border">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Withdrawals
+              Pending Withdrawal
             </CardTitle>
-            <Clock className="h-5 w-5 text-orange-500" />
+            <Clock className="h-5 w-5 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-500">
+            <div className="text-3xl font-bold text-yellow-500">
               ₹{pendingAmount.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Processing</p>
           </CardContent>
         </Card>
 
-        <Card className="border-border sm:col-span-2 lg:col-span-1">
-          <CardContent className="pt-6">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full" size="lg" disabled={availableBalance < MIN_WITHDRAWAL}>
-                  Request Withdrawal
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="text-foreground">Withdraw Funds</DialogTitle>
-                  <DialogDescription>
-                    Enter the amount you want to withdraw. Minimum ₹{MIN_WITHDRAWAL}.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="amount" className="text-foreground">Amount (₹)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder={`Min ₹${MIN_WITHDRAWAL}`}
-                      value={withdrawAmount}
-                      onChange={handleAmountChange}
-                      className={`bg-card border-input ${error ? 'border-destructive' : ''}`}
-                      min={MIN_WITHDRAWAL}
-                      max={availableBalance}
-                    />
-                    {error && (
-                      <p className="text-sm text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-4 w-4" />
-                        {error}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="bg-accent p-3 rounded-lg">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Available Balance</span>
-                      <span className="font-medium text-foreground">₹{availableBalance.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-sm mt-1">
-                      <span className="text-muted-foreground">After Withdrawal</span>
-                      <span className="font-medium text-accent-foreground">
-                        ₹{Math.max(0, availableBalance - (parseFloat(withdrawAmount) || 0)).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
-                    <Info className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-muted-foreground">
-                      Processing occurs every Friday at 11 AM IST. Minimum withdrawal amount is ₹{MIN_WITHDRAWAL}.
-                    </p>
-                  </div>
-                </div>
-                
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button 
-                    onClick={handleWithdraw} 
-                    disabled={isWithdrawing || !!error || !withdrawAmount}
-                  >
-                    {isWithdrawing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      'Submit Request'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            
-            {availableBalance < MIN_WITHDRAWAL && (
-              <p className="text-xs text-muted-foreground text-center mt-2">
-                Minimum balance of ₹{MIN_WITHDRAWAL} required
-              </p>
-            )}
+        {/* Total Withdrawn */}
+        <Card className="border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Withdrawn
+            </CardTitle>
+            <CheckCircle className="h-5 w-5 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-foreground">
+              ₹{withdrawnAmount.toLocaleString()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Successfully paid out</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Payout History */}
+      {/* Transaction History */}
       <Card className="border-border">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-foreground">Payout History</CardTitle>
+          <CardTitle className="text-foreground">Transaction History</CardTitle>
           <Button variant="outline" size="sm" onClick={fetchWalletData}>
             Refresh
           </Button>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border">
-                  <TableHead className="text-muted-foreground">Type</TableHead>
-                  <TableHead className="text-muted-foreground">Date</TableHead>
-                  <TableHead className="text-right text-muted-foreground">Amount</TableHead>
-                  <TableHead className="text-muted-foreground">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payoutHistory.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                      No payout requests yet
-                    </TableCell>
+            <TooltipProvider>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead className="text-muted-foreground">Date</TableHead>
+                    <TableHead className="text-muted-foreground">Type</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Gross</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Deductions</TableHead>
+                    <TableHead className="text-right text-muted-foreground">Net Amount</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
                   </TableRow>
-                ) : (
-                  payoutHistory.map((payout) => (
-                    <TableRow key={payout._id} className="border-border">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <ArrowDownRight className="h-4 w-4 text-destructive" />
-                          <span className="capitalize text-foreground">Withdrawal</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(payout.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-destructive">
-                        -₹{payout.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={getStatusBadge(payout.status)}>
-                          {payout.status}
-                        </Badge>
+                </TableHeader>
+                <TableBody>
+                  {history.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        No transactions yet
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    history.map((transaction) => {
+                      const totalDeductions = (transaction.adminCharge || 0) + (transaction.tdsDeducted || 0);
+                      const isWithdrawal = transaction.payoutType?.toLowerCase().includes('withdrawal');
+                      
+                      return (
+                        <TableRow key={transaction._id} className="border-border">
+                          <TableCell className="text-muted-foreground">
+                            {new Date(transaction.createdAt).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {isWithdrawal ? (
+                                <ArrowDownRight className="h-4 w-4 text-destructive" />
+                              ) : (
+                                <ArrowUpRight className="h-4 w-4 text-green-500" />
+                              )}
+                              <span className="text-foreground">
+                                {formatPayoutType(transaction.payoutType)}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-foreground">
+                            ₹{transaction.grossAmount?.toLocaleString() || 0}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {totalDeductions > 0 ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-destructive cursor-help underline decoration-dotted">
+                                    -₹{totalDeductions.toLocaleString()}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="text-xs space-y-1">
+                                    <p>Admin Charge: ₹{(transaction.adminCharge || 0).toLocaleString()}</p>
+                                    <p>TDS Deducted: ₹{(transaction.tdsDeducted || 0).toLocaleString()}</p>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-green-500">
+                            ₹{transaction.netAmount?.toLocaleString() || 0}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusBadge(transaction.status)}>
+                              {transaction.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </TooltipProvider>
           </div>
         </CardContent>
       </Card>
