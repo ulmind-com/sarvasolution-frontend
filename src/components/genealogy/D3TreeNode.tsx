@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, ChevronDown, User, MapPin, Calendar, Users, Award, CheckCircle2, XCircle } from 'lucide-react';
+import { UserPlus, ChevronDown, Users, CheckCircle2, XCircle, TrendingUp, Star } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -23,14 +23,20 @@ export interface D3TreeNodeDatum {
     isEmpty?: boolean;
     isActive?: boolean;
     status?: string;
-    // Direct Business Stats
-    leftDirectActive?: number;
-    leftDirectInactive?: number;
-    rightDirectActive?: number;
-    rightDirectInactive?: number;
+    // Complete Team Stats (replacing Direct Business)
+    leftCompleteActive?: number;
+    leftCompleteInactive?: number;
+    rightCompleteActive?: number;
+    rightCompleteInactive?: number;
     // Total Team Counts
     leftTeamCount?: number;
     rightTeamCount?: number;
+    // Business Volume
+    leftLegBV?: number;
+    rightLegBV?: number;
+    // Stars
+    leftLegStars?: number;
+    rightLegStars?: number;
   };
   children?: D3TreeNodeDatum[];
 }
@@ -75,14 +81,20 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       isEmpty: false,
       isActive: node.isActive ?? (node.status?.toLowerCase() === 'active'),
       status: node.status,
-      // Direct Business Stats
-      leftDirectActive: node.leftDirectActive ?? 0,
-      leftDirectInactive: node.leftDirectInactive ?? 0,
-      rightDirectActive: node.rightDirectActive ?? 0,
-      rightDirectInactive: node.rightDirectInactive ?? 0,
+      // Complete Team Stats
+      leftCompleteActive: node.leftCompleteActive ?? node.leftDirectActive ?? 0,
+      leftCompleteInactive: node.leftCompleteInactive ?? node.leftDirectInactive ?? 0,
+      rightCompleteActive: node.rightCompleteActive ?? node.rightDirectActive ?? 0,
+      rightCompleteInactive: node.rightCompleteInactive ?? node.rightDirectInactive ?? 0,
       // Total Team Counts
       leftTeamCount: node.leftTeamCount ?? 0,
       rightTeamCount: node.rightTeamCount ?? 0,
+      // Business Volume
+      leftLegBV: node.leftLegBV ?? 0,
+      rightLegBV: node.rightLegBV ?? 0,
+      // Stars
+      leftLegStars: node.leftLegStars ?? 0,
+      rightLegStars: node.rightLegStars ?? 0,
     },
     children: children.length > 0 ? children : undefined,
   };
@@ -219,80 +231,101 @@ const HoverTooltip = ({
           </div>
         </div>
 
-        {/* Section B: Core Info - 2x2 Grid */}
-        <div className="p-3 grid grid-cols-2 gap-2 text-xs border-b border-border/50">
+        {/* Section B: Core Info - 3 Column Grid (Removed Position) */}
+        <div className="p-3 grid grid-cols-3 gap-2 text-xs border-b border-border/50">
           <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Sponsor</span>
-            <span className="font-mono font-semibold text-primary truncate">{sponsorDisplay}</span>
+            <span className="font-mono font-semibold text-primary truncate text-[10px]">{sponsorDisplay}</span>
           </div>
           
           <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Joined</span>
-            <span className="font-medium text-foreground">{formattedJoiningDate || 'N/A'}</span>
+            <span className="font-medium text-foreground text-[10px]">{formattedJoiningDate || 'N/A'}</span>
           </div>
           
           <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Rank</span>
             <Badge className={cn('text-[9px] w-fit', badge)}>{data.rank || 'N/A'}</Badge>
           </div>
-          
-          <div className="flex flex-col gap-0.5 p-2 bg-muted/30 rounded-lg">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Position</span>
-            <Badge variant="outline" className="text-[9px] capitalize w-fit font-medium">
-              {data.position === 'root' ? 'Root' : `${data.position} Leg`}
-            </Badge>
-          </div>
         </div>
 
-        {/* Section C: Direct Business Stats */}
+        {/* Section C: Total Business Stats */}
         <div className="p-3 bg-muted/40">
           <div className="flex items-center gap-1.5 mb-2">
             <Users className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              Direct Business
+              Total Business
             </span>
           </div>
           
           <div className="grid grid-cols-2 gap-3">
             {/* Left Leg Stats */}
-            <div className="p-2 bg-background/60 rounded-lg border border-border/30">
-              <div className="flex justify-between items-center mb-1.5">
+            <div className="p-2 bg-background/60 rounded-lg border border-border/30 space-y-2">
+              {/* Header with Total Team Count */}
+              <div className="flex justify-between items-center">
                 <p className="text-[10px] font-medium text-muted-foreground">Left Leg</p>
-                {/* Total Team Count */}
                 <span className="text-[10px] font-bold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded">
                   <Users className="w-3 h-3" /> {data.leftTeamCount ?? 0}
                 </span>
               </div>
-              <div className="flex justify-center gap-3">
+              
+              {/* Row 1: Member Status (Active/Inactive) */}
+              <div className="flex justify-center gap-3 py-1 border-b border-border/20">
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-chart-2" />
-                  <span className="text-xs font-bold text-chart-2">{data.leftDirectActive ?? 0}</span>
+                  <span className="text-xs font-bold text-chart-2">{data.leftCompleteActive ?? 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <XCircle className="h-3 w-3 text-destructive" />
-                  <span className="text-xs font-bold text-destructive">{data.leftDirectInactive ?? 0}</span>
+                  <span className="text-xs font-bold text-destructive">{data.leftCompleteInactive ?? 0}</span>
                 </div>
+              </div>
+              
+              {/* Row 2: Business Volume (BV) */}
+              <div className="flex items-center justify-center gap-1.5 py-1 bg-chart-1/10 rounded">
+                <TrendingUp className="h-3 w-3 text-chart-1" />
+                <span className="text-[10px] font-bold text-chart-1">{(data.leftLegBV ?? 0).toLocaleString()} BV</span>
+              </div>
+              
+              {/* Row 3: Stars */}
+              <div className="flex items-center justify-center gap-1.5 py-1 bg-chart-2/10 rounded">
+                <Star className="h-3 w-3 text-chart-2 fill-chart-2" />
+                <span className="text-[10px] font-bold text-chart-2">{data.leftLegStars ?? 0} Stars</span>
               </div>
             </div>
 
             {/* Right Leg Stats */}
-            <div className="p-2 bg-background/60 rounded-lg border border-border/30">
-              <div className="flex justify-between items-center mb-1.5">
+            <div className="p-2 bg-background/60 rounded-lg border border-border/30 space-y-2">
+              {/* Header with Total Team Count */}
+              <div className="flex justify-between items-center">
                 <p className="text-[10px] font-medium text-muted-foreground">Right Leg</p>
-                {/* Total Team Count */}
                 <span className="text-[10px] font-bold text-primary flex items-center gap-1 bg-primary/10 px-1.5 py-0.5 rounded">
                   <Users className="w-3 h-3" /> {data.rightTeamCount ?? 0}
                 </span>
               </div>
-              <div className="flex justify-center gap-3">
+              
+              {/* Row 1: Member Status (Active/Inactive) */}
+              <div className="flex justify-center gap-3 py-1 border-b border-border/20">
                 <div className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-chart-2" />
-                  <span className="text-xs font-bold text-chart-2">{data.rightDirectActive ?? 0}</span>
+                  <span className="text-xs font-bold text-chart-2">{data.rightCompleteActive ?? 0}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <XCircle className="h-3 w-3 text-destructive" />
-                  <span className="text-xs font-bold text-destructive">{data.rightDirectInactive ?? 0}</span>
+                  <span className="text-xs font-bold text-destructive">{data.rightCompleteInactive ?? 0}</span>
                 </div>
+              </div>
+              
+              {/* Row 2: Business Volume (BV) */}
+              <div className="flex items-center justify-center gap-1.5 py-1 bg-chart-1/10 rounded">
+                <TrendingUp className="h-3 w-3 text-chart-1" />
+                <span className="text-[10px] font-bold text-chart-1">{(data.rightLegBV ?? 0).toLocaleString()} BV</span>
+              </div>
+              
+              {/* Row 3: Stars */}
+              <div className="flex items-center justify-center gap-1.5 py-1 bg-chart-2/10 rounded">
+                <Star className="h-3 w-3 text-chart-2 fill-chart-2" />
+                <span className="text-[10px] font-bold text-chart-2">{data.rightLegStars ?? 0} Stars</span>
               </div>
             </div>
           </div>
