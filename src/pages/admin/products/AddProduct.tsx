@@ -102,11 +102,15 @@ const [formData, setFormData] = useState({
       if (formData.sgst) submitData.append('sgst', formData.sgst);
       if (formData.hsnCode) submitData.append('hsnCode', formData.hsnCode);
       
-      // Append image file
-      submitData.append('productImage', imageFile);
+      // Append image file (ensure filename is present for stricter backends)
+      submitData.append('productImage', imageFile, imageFile.name);
 
-      // Let browser set Content-Type with boundary for multipart/form-data
-      await api.post('/api/v1/admin/product/create', submitData);
+      // Override axios instance default JSON header for this request
+      await api.post('/api/v1/admin/product/create', submitData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       toast.success('Product created successfully');
       resetForm();
