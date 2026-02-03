@@ -23,15 +23,16 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     productName: '',
     description: '',
     price: '',
     mrp: '',
     category: '',
     stockQuantity: '',
-    reorderLevel: '',
-    sku: '',
+    gst: '',
+    cgst: '',
+    sgst: '',
     hsnCode: '',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -61,8 +62,9 @@ const AddProduct = () => {
       mrp: '',
       category: '',
       stockQuantity: '',
-      reorderLevel: '',
-      sku: '',
+      gst: '',
+      cgst: '',
+      sgst: '',
       hsnCode: '',
     });
     setImageFile(null);
@@ -92,13 +94,10 @@ const AddProduct = () => {
       submitData.append('mrp', formData.mrp);
       submitData.append('category', formData.category);
       submitData.append('stockQuantity', formData.stockQuantity);
+      submitData.append('gst', formData.gst || '0');
+      submitData.append('cgst', formData.cgst || '0');
+      submitData.append('sgst', formData.sgst || '0');
       
-      if (formData.reorderLevel) {
-        submitData.append('reorderLevel', formData.reorderLevel);
-      }
-      if (formData.sku) {
-        submitData.append('sku', formData.sku);
-      }
       if (formData.hsnCode) {
         submitData.append('hsnCode', formData.hsnCode);
       }
@@ -188,27 +187,15 @@ const AddProduct = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sku">SKU</Label>
-                  <Input
-                    id="sku"
-                    name="sku"
-                    value={formData.sku}
-                    onChange={handleInputChange}
-                    placeholder="e.g., SKU-001"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="hsnCode">HSN Code</Label>
-                  <Input
-                    id="hsnCode"
-                    name="hsnCode"
-                    value={formData.hsnCode}
-                    onChange={handleInputChange}
-                    placeholder="e.g., 1234"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="hsnCode">HSN Code</Label>
+                <Input
+                  id="hsnCode"
+                  name="hsnCode"
+                  value={formData.hsnCode}
+                  onChange={handleInputChange}
+                  placeholder="e.g., 1234"
+                />
               </div>
             </CardContent>
           </Card>
@@ -251,31 +238,63 @@ const AddProduct = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="stockQuantity">Initial Stock *</Label>
-                  <Input
-                    id="stockQuantity"
-                    name="stockQuantity"
-                    type="number"
-                    min="0"
-                    value={formData.stockQuantity}
-                    onChange={handleInputChange}
-                    placeholder="Quantity in stock"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reorderLevel">Reorder Level</Label>
-                  <Input
-                    id="reorderLevel"
-                    name="reorderLevel"
-                    type="number"
-                    min="0"
-                    value={formData.reorderLevel}
-                    onChange={handleInputChange}
-                    placeholder="Low stock alert threshold"
-                  />
+              <div className="space-y-2">
+                <Label htmlFor="stockQuantity">Initial Stock *</Label>
+                <Input
+                  id="stockQuantity"
+                  name="stockQuantity"
+                  type="number"
+                  min="0"
+                  value={formData.stockQuantity}
+                  onChange={handleInputChange}
+                  placeholder="Quantity in stock"
+                  required
+                />
+              </div>
+
+              {/* Taxation Section */}
+              <div className="space-y-4 pt-4 border-t border-border">
+                <h4 className="font-medium text-foreground">Taxation</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gst">GST (%)</Label>
+                    <Input
+                      id="gst"
+                      name="gst"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.gst}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 18"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cgst">CGST (%)</Label>
+                    <Input
+                      id="cgst"
+                      name="cgst"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.cgst}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 9"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sgst">SGST (%)</Label>
+                    <Input
+                      id="sgst"
+                      name="sgst"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.sgst}
+                      onChange={handleInputChange}
+                      placeholder="e.g., 9"
+                    />
+                  </div>
                 </div>
               </div>
 

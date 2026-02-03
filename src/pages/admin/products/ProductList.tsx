@@ -21,8 +21,9 @@ interface Product {
   segment?: string;
   stockQuantity?: number;
   stockCount?: number;
-  reorderLevel?: number;
-  sku?: string;
+  gst?: number;
+  cgst?: number;
+  sgst?: number;
   hsnCode?: string;
   productImage?: {
     url: string;
@@ -129,11 +130,10 @@ const ProductList = () => {
 
   const getStockBadgeStyle = (product: Product) => {
     const stock = getProductStock(product);
-    const reorderLevel = product.reorderLevel ?? 10;
     
     if (stock === null) return '';
     if (stock <= 0) return 'text-destructive font-bold';
-    if (stock < reorderLevel) return 'text-destructive font-medium';
+    if (stock < 10) return 'text-destructive font-medium';
     return 'text-foreground';
   };
 
@@ -214,13 +214,13 @@ const ProductList = () => {
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">MRP</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
+                  <TableHead>HSN</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProducts.map((product) => {
                   const stock = getProductStock(product);
-                  const reorderLevel = product.reorderLevel ?? 10;
-                  const isLowStock = stock !== null && stock < reorderLevel;
+                  const isLowStock = stock !== null && stock < 10;
                   
                   return (
                     <TableRow key={product._id}>
@@ -272,6 +272,9 @@ const ProductList = () => {
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {product.hsnCode || '-'}
                       </TableCell>
                     </TableRow>
                   );
