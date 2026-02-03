@@ -1,20 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Store, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import api from '@/lib/api';
+import { useFranchiseAuthStore } from '@/stores/useFranchiseAuthStore';
 import { toast } from 'sonner';
 
 const FranchiseLogin = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isLoading, error, isAuthenticated, clearError } = useFranchiseAuthStore();
   const [formData, setFormData] = useState({
     vendorId: '',
     password: '',
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/franchise/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Show error toast when error changes
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error, clearError]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,33 +44,11 @@ const FranchiseLogin = () => {
       return;
     }
 
-    setIsLoading(true);
+    const result = await login(formData.vendorId, formData.password);
 
-    try {
-      const response = await api.post('/api/v1/franchise/login', {
-        vendorId: formData.vendorId,
-        password: formData.password,
-      });
-
-      // Store franchise token and redirect
-      // Note: This is a placeholder - actual implementation depends on your auth flow
-      const { token, franchise } = response.data.data || response.data;
-      
-      if (token) {
-        localStorage.setItem('franchise-token', token);
-        localStorage.setItem('franchise-data', JSON.stringify(franchise));
-        toast.success('Login successful');
-        // Redirect to franchise dashboard (placeholder)
-        navigate('/franchise/dashboard');
-      } else {
-        toast.success('Login successful');
-        toast.info('Franchise dashboard not yet implemented');
-      }
-    } catch (error: any) {
-      console.error('Franchise login error:', error);
-      toast.error(error.response?.data?.message || 'Login failed');
-    } finally {
-      setIsLoading(false);
+    if (result.success) {
+      toast.success('Login successful!');
+      navigate('/franchise/dashboard');
     }
   };
 
@@ -71,9 +64,9 @@ const FranchiseLogin = () => {
           Back to Home
         </Link>
 
-        <Card className="shadow-xl">
+        <Card className="shadow-xl border-border/50 backdrop-blur-sm">
           <CardHeader className="text-center pb-2">
-            <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 ring-4 ring-primary/5">
               <Store className="h-8 w-8 text-primary" />
             </div>
             <CardTitle className="text-2xl">Franchise Login</CardTitle>
@@ -92,6 +85,7 @@ const FranchiseLogin = () => {
                   onChange={handleInputChange}
                   placeholder="Enter your vendor ID"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
@@ -105,12 +99,13 @@ const FranchiseLogin = () => {
                   onChange={handleInputChange}
                   placeholder="Enter your password"
                   required
+                  disabled={isLoading}
                 />
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Login
+                Login to Franchise Portal
               </Button>
             </form>
 

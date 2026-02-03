@@ -48,6 +48,9 @@ import SaleToFranchise from "./pages/admin/franchise/SaleToFranchise";
 import SaleHistory from "./pages/admin/franchise/SaleHistory";
 import FranchiseRequests from "./pages/admin/franchise/FranchiseRequests";
 
+// Franchise Portal
+import FranchiseDashboard from "./pages/franchise/FranchiseDashboard";
+
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) => {
@@ -251,6 +254,9 @@ const AppRoutes = () => {
           </AdminLayout>
         </ProtectedRoute>
       } />
+      
+      {/* Franchise Portal Routes */}
+      <Route path="/franchise/dashboard" element={<FranchiseDashboard />} />
       
       {/* 404 */}
       <Route path="*" element={<NotFound />} />

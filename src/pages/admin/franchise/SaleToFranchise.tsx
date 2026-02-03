@@ -1,27 +1,31 @@
-import { useState } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, Store, Package, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ShoppingCart, Plus, Minus, Trash2, Store, Package, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import api from '@/lib/api';
 
-// Mock data for UI placeholder
-const mockFranchises = [
-  { _id: '1', shopName: 'ABC Store', vendorId: 'VND001', city: 'Mumbai' },
-  { _id: '2', shopName: 'XYZ Mart', vendorId: 'VND002', city: 'Delhi' },
-  { _id: '3', shopName: 'Quick Shop', vendorId: 'VND003', city: 'Bangalore' },
-];
+interface Franchise {
+  _id: string;
+  shopName: string;
+  vendorId: string;
+  name: string;
+  city: string;
+  status: string;
+}
 
-const mockProducts = [
-  { _id: '1', name: 'Health Supplement A', price: 500, bv: 50, stock: 100 },
-  { _id: '2', name: 'Personal Care Kit', price: 750, bv: 75, stock: 50 },
-  { _id: '3', name: 'Home Care Bundle', price: 1200, bv: 120, stock: 30 },
-  { _id: '4', name: 'Agriculture Product X', price: 2000, bv: 200, stock: 25 },
-];
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  bv: number;
+  stock: number;
+  segment: string;
+}
 
 interface CartItem {
   productId: string;
@@ -29,15 +33,61 @@ interface CartItem {
   price: number;
   quantity: number;
   bv: number;
+  maxStock: number;
 }
 
 const SaleToFranchise = () => {
+  const [franchises, setFranchises] = useState<Franchise[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [selectedFranchise, setSelectedFranchise] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isLoadingFranchises, setIsLoadingFranchises] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const addToCart = (product: typeof mockProducts[0]) => {
+  // Fetch franchises and products on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [franchiseRes, productRes] = await Promise.all([
+          api.get('/api/v1/admin/franchise/list'),
+          api.get('/api/v1/admin/product/list'),
+        ]);
+
+        const franchiseData = franchiseRes.data.data || franchiseRes.data;
+        const productData = productRes.data.data || productRes.data;
+
+        // Filter only active franchises
+        setFranchises(
+          Array.isArray(franchiseData)
+            ? franchiseData.filter((f: Franchise) => f.status === 'active')
+            : []
+        );
+        setProducts(Array.isArray(productData) ? productData : productData.products || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
+      } finally {
+        setIsLoadingFranchises(false);
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const addToCart = (product: Product) => {
+    if (product.stock <= 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
+
     const existingItem = cart.find((item) => item.productId === product._id);
     if (existingItem) {
+      if (existingItem.quantity >= product.stock) {
+        toast.error('Cannot add more than available stock');
+        return;
+      }
       setCart(
         cart.map((item) =>
           item.productId === product._id
@@ -53,7 +103,8 @@ const SaleToFranchise = () => {
           name: product.name,
           price: product.price,
           quantity: 1,
-          bv: product.bv,
+          bv: product.bv || 0,
+          maxStock: product.stock,
         },
       ]);
     }
@@ -62,11 +113,17 @@ const SaleToFranchise = () => {
   const updateQuantity = (productId: string, delta: number) => {
     setCart(
       cart
-        .map((item) =>
-          item.productId === productId
-            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
-            : item
-        )
+        .map((item) => {
+          if (item.productId === productId) {
+            const newQuantity = item.quantity + delta;
+            if (newQuantity > item.maxStock) {
+              toast.error('Cannot exceed available stock');
+              return item;
+            }
+            return { ...item, quantity: Math.max(0, newQuantity) };
+          }
+          return item;
+        })
         .filter((item) => item.quantity > 0)
     );
   };
@@ -83,7 +140,7 @@ const SaleToFranchise = () => {
     return cart.reduce((sum, item) => sum + item.bv * item.quantity, 0);
   };
 
-  const handleCreateInvoice = () => {
+  const handleCreateInvoice = async () => {
     if (!selectedFranchise) {
       toast.error('Please select a franchise');
       return;
@@ -93,18 +150,36 @@ const SaleToFranchise = () => {
       return;
     }
 
-    // Placeholder - Log to console
-    console.log('Creating invoice:', {
-      franchiseId: selectedFranchise,
-      items: cart,
-      total: calculateTotal(),
-      totalBV: calculateTotalBV(),
-    });
+    setIsSubmitting(true);
 
-    toast.info('Invoice creation API not yet implemented');
+    try {
+      const payload = {
+        franchiseId: selectedFranchise,
+        items: cart.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      };
+
+      await api.post('/api/v1/admin/sales/sell-to-franchise', payload);
+
+      toast.success('Sale completed successfully!');
+      setCart([]);
+      setSelectedFranchise('');
+
+      // Refresh products to get updated stock
+      const productRes = await api.get('/api/v1/admin/product/list');
+      const productData = productRes.data.data || productRes.data;
+      setProducts(Array.isArray(productData) ? productData : productData.products || []);
+    } catch (error: any) {
+      console.error('Error creating sale:', error);
+      toast.error(error.response?.data?.message || 'Failed to process sale');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const selectedFranchiseData = mockFranchises.find((f) => f._id === selectedFranchise);
+  const selectedFranchiseData = franchises.find((f) => f._id === selectedFranchise);
 
   return (
     <div className="space-y-6">
@@ -112,10 +187,6 @@ const SaleToFranchise = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Sale to Franchise</h1>
         <p className="text-muted-foreground">Create a sale order for a franchise partner</p>
-        <Badge variant="secondary" className="mt-2">
-          <FileText className="h-3 w-3 mr-1" />
-          UI Placeholder - API Not Connected
-        </Badge>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -130,25 +201,33 @@ const SaleToFranchise = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a franchise..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockFranchises.map((franchise) => (
-                    <SelectItem key={franchise._id} value={franchise._id}>
-                      {franchise.shopName} ({franchise.vendorId}) - {franchise.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedFranchiseData && (
-                <div className="mt-4 p-3 bg-muted rounded-lg">
-                  <p className="font-medium">{selectedFranchiseData.shopName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Vendor ID: {selectedFranchiseData.vendorId} • {selectedFranchiseData.city}
-                  </p>
+              {isLoadingFranchises ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                 </div>
+              ) : (
+                <>
+                  <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a franchise..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {franchises.map((franchise) => (
+                        <SelectItem key={franchise._id} value={franchise._id}>
+                          {franchise.shopName} ({franchise.vendorId}) - {franchise.city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedFranchiseData && (
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <p className="font-medium">{selectedFranchiseData.shopName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Owner: {selectedFranchiseData.name} • Vendor ID: {selectedFranchiseData.vendorId} • {selectedFranchiseData.city}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -163,28 +242,50 @@ const SaleToFranchise = () => {
               <CardDescription>Click on a product to add it to the cart</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {mockProducts.map((product) => (
-                  <div
-                    key={product._id}
-                    className="p-4 border rounded-lg hover:border-primary cursor-pointer transition-colors"
-                    onClick={() => addToCart(product)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">₹{product.price}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {product.bv} BV
-                        </Badge>
+              {isLoadingProducts ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : products.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No products available</p>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {products.map((product) => (
+                    <div
+                      key={product._id}
+                      className={`p-4 border rounded-lg transition-colors ${
+                        product.stock > 0
+                          ? 'hover:border-primary cursor-pointer'
+                          : 'opacity-50 cursor-not-allowed'
+                      }`}
+                      onClick={() => product.stock > 0 && addToCart(product)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {product.segment}
+                          </p>
+                          <p className={`text-sm ${product.stock <= 5 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            Stock: {product.stock}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold">₹{product.price?.toLocaleString()}</p>
+                          {product.bv > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              {product.bv} BV
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -215,7 +316,7 @@ const SaleToFranchise = () => {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{item.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          ₹{item.price} × {item.quantity}
+                          ₹{item.price?.toLocaleString()} × {item.quantity}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -270,8 +371,16 @@ const SaleToFranchise = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full" onClick={handleCreateInvoice}>
-                    <FileText className="h-4 w-4 mr-2" />
+                  <Button
+                    className="w-full"
+                    onClick={handleCreateInvoice}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileText className="h-4 w-4 mr-2" />
+                    )}
                     Create Invoice
                   </Button>
                 </div>

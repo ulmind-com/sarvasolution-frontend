@@ -1,64 +1,78 @@
-import { useState } from 'react';
-import { History, Search, Eye, Download, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { History, Search, Eye, Download, Loader2, FileText, IndianRupee, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import api from '@/lib/api';
 
-// Mock data for UI placeholder
-const mockSaleHistory = [
-  {
-    _id: '1',
-    invoiceNo: 'INV-2024-001',
-    franchiseName: 'ABC Store',
-    vendorId: 'VND001',
-    amount: 15000,
-    itemCount: 5,
-    status: 'completed',
-    createdAt: '2024-02-01T10:30:00Z',
-  },
-  {
-    _id: '2',
-    invoiceNo: 'INV-2024-002',
-    franchiseName: 'XYZ Mart',
-    vendorId: 'VND002',
-    amount: 28500,
-    itemCount: 8,
-    status: 'pending',
-    createdAt: '2024-02-02T14:15:00Z',
-  },
-  {
-    _id: '3',
-    invoiceNo: 'INV-2024-003',
-    franchiseName: 'Quick Shop',
-    vendorId: 'VND003',
-    amount: 42000,
-    itemCount: 12,
-    status: 'completed',
-    createdAt: '2024-02-03T09:45:00Z',
-  },
-  {
-    _id: '4',
-    invoiceNo: 'INV-2024-004',
-    franchiseName: 'Super Store',
-    vendorId: 'VND004',
-    amount: 18750,
-    itemCount: 6,
-    status: 'cancelled',
-    createdAt: '2024-02-03T16:20:00Z',
-  },
-];
+interface SaleItem {
+  productId: string;
+  productName?: string;
+  name?: string;
+  quantity: number;
+  price: number;
+}
+
+interface Sale {
+  _id: string;
+  invoiceNo?: string;
+  invoiceNumber?: string;
+  franchiseId: {
+    _id: string;
+    shopName: string;
+    vendorId: string;
+    name: string;
+  };
+  items: SaleItem[];
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+}
 
 const SaleHistory = () => {
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
-  const filteredHistory = mockSaleHistory.filter(
-    (sale) =>
-      sale.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.franchiseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sale.vendorId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    fetchSales();
+  }, []);
+
+  const fetchSales = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/api/v1/admin/sales/list');
+      const data = response.data.data || response.data;
+      setSales(Array.isArray(data) ? data : data.sales || []);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      toast.error('Failed to load sales history');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredSales = sales.filter((sale) => {
+    const searchLower = searchTerm.toLowerCase();
+    const invoiceNo = sale.invoiceNo || sale.invoiceNumber || '';
+    return (
+      invoiceNo.toLowerCase().includes(searchLower) ||
+      sale.franchiseId?.shopName?.toLowerCase().includes(searchLower) ||
+      sale.franchiseId?.vendorId?.toLowerCase().includes(searchLower)
+    );
+  });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -69,20 +83,28 @@ const SaleHistory = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'completed':
+      case 'paid':
         return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{status || 'Unknown'}</Badge>;
     }
   };
 
-  const totalSales = mockSaleHistory.reduce((sum, sale) => sum + sale.amount, 0);
-  const completedSales = mockSaleHistory.filter((s) => s.status === 'completed').length;
+  const totalSalesAmount = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+  const completedSales = sales.filter((s) => 
+    s.status?.toLowerCase() === 'completed' || s.status?.toLowerCase() === 'paid'
+  ).length;
+
+  const handleViewDetails = (sale: Sale) => {
+    setSelectedSale(sale);
+    setShowDetails(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -90,10 +112,6 @@ const SaleHistory = () => {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Sale History</h1>
         <p className="text-muted-foreground">View all franchise sale transactions</p>
-        <Badge variant="secondary" className="mt-2">
-          <FileText className="h-3 w-3 mr-1" />
-          UI Placeholder - API Not Connected
-        </Badge>
       </div>
 
       {/* Stats Cards */}
@@ -106,7 +124,7 @@ const SaleHistory = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Invoices</p>
-                <p className="text-2xl font-bold">{mockSaleHistory.length}</p>
+                <p className="text-2xl font-bold">{sales.length}</p>
               </div>
             </div>
           </CardContent>
@@ -128,11 +146,11 @@ const SaleHistory = () => {
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <History className="h-5 w-5 text-amber-500" />
+                <IndianRupee className="h-5 w-5 text-amber-500" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Value</p>
-                <p className="text-2xl font-bold">₹{totalSales.toLocaleString()}</p>
+                <p className="text-2xl font-bold">₹{totalSalesAmount.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -153,52 +171,127 @@ const SaleHistory = () => {
       {/* History Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice No</TableHead>
-                <TableHead>Franchise</TableHead>
-                <TableHead className="text-center">Items</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredHistory.map((sale) => (
-                <TableRow key={sale._id}>
-                  <TableCell className="font-mono font-medium">{sale.invoiceNo}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{sale.franchiseName}</p>
-                      <p className="text-xs text-muted-foreground">{sale.vendorId}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant="outline">{sale.itemCount}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    ₹{sale.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell>{formatDate(sale.createdAt)}</TableCell>
-                  <TableCell>{getStatusBadge(sale.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredSales.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <History className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No sales found</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Invoice No</TableHead>
+                  <TableHead>Franchise</TableHead>
+                  <TableHead className="text-center">Items</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredSales.map((sale) => (
+                  <TableRow key={sale._id}>
+                    <TableCell className="font-mono font-medium">
+                      {sale.invoiceNo || sale.invoiceNumber || sale._id.slice(-8).toUpperCase()}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{sale.franchiseId?.shopName || 'N/A'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {sale.franchiseId?.vendorId || 'N/A'}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline">{sale.items?.length || 0}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      ₹{(sale.totalAmount || 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell>{formatDate(sale.createdAt)}</TableCell>
+                    <TableCell>{getStatusBadge(sale.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleViewDetails(sale)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
+
+      {/* Sale Details Dialog */}
+      <Dialog open={showDetails} onOpenChange={setShowDetails}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Sale Details</DialogTitle>
+            <DialogDescription>
+              Invoice: {selectedSale?.invoiceNo || selectedSale?.invoiceNumber || selectedSale?._id.slice(-8).toUpperCase()}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedSale && (
+            <div className="space-y-4">
+              {/* Franchise Info */}
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{selectedSale.franchiseId?.shopName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedSale.franchiseId?.name} • {selectedSale.franchiseId?.vendorId}
+                </p>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-2">
+                <p className="font-medium flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Items
+                </p>
+                <div className="border rounded-lg divide-y">
+                  {selectedSale.items?.map((item, index) => (
+                    <div key={index} className="p-3 flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{item.productName || item.name || 'Product'}</p>
+                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                      </div>
+                      <p className="font-medium">₹{(item.price * item.quantity).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
+                <span className="font-bold">Total Amount</span>
+                <span className="text-xl font-bold">₹{(selectedSale.totalAmount || 0).toLocaleString()}</span>
+              </div>
+
+              {/* Date & Status */}
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Date: {formatDate(selectedSale.createdAt)}</span>
+                {getStatusBadge(selectedSale.status)}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
