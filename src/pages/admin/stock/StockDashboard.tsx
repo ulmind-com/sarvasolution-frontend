@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, Package, Plus, Minus, History, Loader2, RefreshCw, Search } from 'lucide-react';
+import { Package, Plus, Minus, History, Loader2, RefreshCw, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,14 +22,6 @@ interface Product {
   };
 }
 
-interface LowStockAlert {
-  _id: string;
-  productId: string;
-  productName: string;
-  currentStock: number;
-  threshold: number;
-}
-
 interface StockHistoryItem {
   _id: string;
   type: 'add' | 'remove';
@@ -45,7 +37,6 @@ interface StockHistoryItem {
 
 const StockDashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [lowStockAlerts, setLowStockAlerts] = useState<LowStockAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,13 +48,8 @@ const StockDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Form state
-  const [stockForm, setStockForm] = useState({
-    quantity: '',
-    batchNo: '',
-    referenceNo: '',
-    reason: '',
-  });
+  // Form state - simplified to only quantity
+  const [stockQuantity, setStockQuantity] = useState('');
 
   const fetchData = useCallback(async (showRefreshSpinner = false) => {
     if (showRefreshSpinner) {
@@ -73,14 +59,9 @@ const StockDashboard = () => {
     }
 
     try {
-      const [productsRes, alertsRes] = await Promise.all([
-        api.get('/api/v1/admin/product/list'),
-        api.get('/api/v1/admin/product/alerts/low-stock'),
-      ]);
-
+      const productsRes = await api.get('/api/v1/admin/product/list');
       const productsData = productsRes.data.data?.products || productsRes.data.data || productsRes.data.products || [];
       setProducts(productsData);
-      setLowStockAlerts(alertsRes.data.data || alertsRes.data.alerts || []);
     } catch (error: any) {
       console.error('Error fetching stock data:', error);
       toast.error('Failed to fetch stock data');
@@ -99,23 +80,26 @@ const StockDashboard = () => {
   );
 
   const handleAddStock = async () => {
-    if (!addStockModal.product || !stockForm.quantity) {
+    if (!addStockModal.product || !stockQuantity) {
       toast.error('Please enter a quantity');
+      return;
+    }
+
+    const qty = parseInt(stockQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error('Please enter a valid positive quantity');
       return;
     }
 
     setIsSubmitting(true);
     try {
       await api.patch(`/api/v1/admin/product/stock/add/${addStockModal.product._id}`, {
-        quantityToAdd: parseInt(stockForm.quantity),
-        batchNo: stockForm.batchNo,
-        referenceNo: stockForm.referenceNo,
-        reason: stockForm.reason,
+        quantityToAdd: qty,
       });
 
       toast.success('Stock added successfully');
       setAddStockModal({ open: false, product: null });
-      setStockForm({ quantity: '', batchNo: '', referenceNo: '', reason: '' });
+      setStockQuantity('');
       fetchData(true);
     } catch (error: any) {
       console.error('Error adding stock:', error);
@@ -126,22 +110,33 @@ const StockDashboard = () => {
   };
 
   const handleRemoveStock = async () => {
-    if (!removeStockModal.product || !stockForm.quantity) {
+    if (!removeStockModal.product || !stockQuantity) {
       toast.error('Please enter a quantity');
+      return;
+    }
+
+    const qty = parseInt(stockQuantity);
+    if (isNaN(qty) || qty <= 0) {
+      toast.error('Please enter a valid positive quantity');
+      return;
+    }
+
+    // Check if quantity exceeds current stock
+    const currentStock = removeStockModal.product.stockCount ?? 0;
+    if (qty > currentStock) {
+      toast.error(`Cannot remove more than current stock (${currentStock})`);
       return;
     }
 
     setIsSubmitting(true);
     try {
       await api.patch(`/api/v1/admin/product/stock/remove/${removeStockModal.product._id}`, {
-        quantityToRemove: parseInt(stockForm.quantity),
-        referenceNo: stockForm.referenceNo,
-        reason: stockForm.reason,
+        quantityToRemove: qty,
       });
 
       toast.success('Stock removed successfully');
       setRemoveStockModal({ open: false, product: null });
-      setStockForm({ quantity: '', batchNo: '', referenceNo: '', reason: '' });
+      setStockQuantity('');
       fetchData(true);
     } catch (error: any) {
       console.error('Error removing stock:', error);
@@ -197,29 +192,6 @@ const StockDashboard = () => {
           Refresh
         </Button>
       </div>
-
-      {/* Low Stock Alerts */}
-      {lowStockAlerts.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {lowStockAlerts.map((alert) => (
-            <Card key={alert._id} className="border-destructive/50 bg-destructive/5">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-destructive/20 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-destructive" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{alert.productName}</p>
-                    <p className="text-sm text-destructive">
-                      Only {alert.currentStock} units left (Threshold: {alert.threshold})
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
 
       {/* Search */}
       <div className="relative max-w-md">
@@ -288,7 +260,7 @@ const StockDashboard = () => {
                           variant="outline"
                           className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
                           onClick={() => {
-                            setStockForm({ quantity: '', batchNo: '', referenceNo: '', reason: '' });
+                            setStockQuantity('');
                             setAddStockModal({ open: true, product });
                           }}
                         >
@@ -299,7 +271,7 @@ const StockDashboard = () => {
                           variant="outline"
                           className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                           onClick={() => {
-                            setStockForm({ quantity: '', batchNo: '', referenceNo: '', reason: '' });
+                            setStockQuantity('');
                             setRemoveStockModal({ open: true, product });
                           }}
                         >
@@ -338,36 +310,10 @@ const StockDashboard = () => {
               <Input
                 id="add-quantity"
                 type="number"
-                value={stockForm.quantity}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                min="1"
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
                 placeholder="Enter quantity to add"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-batch">Batch No</Label>
-              <Input
-                id="add-batch"
-                value={stockForm.batchNo}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, batchNo: e.target.value }))}
-                placeholder="Enter batch number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-reference">Reference No</Label>
-              <Input
-                id="add-reference"
-                value={stockForm.referenceNo}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, referenceNo: e.target.value }))}
-                placeholder="Enter reference number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="add-reason">Reason</Label>
-              <Textarea
-                id="add-reason"
-                value={stockForm.reason}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, reason: e.target.value }))}
-                placeholder="Enter reason for adding stock"
               />
             </div>
           </div>
@@ -390,6 +336,11 @@ const StockDashboard = () => {
             <DialogTitle>Remove Stock</DialogTitle>
             <DialogDescription>
               Remove stock from <strong>{removeStockModal.product?.name}</strong>
+              {removeStockModal.product && (
+                <span className="block mt-1 text-sm">
+                  Current stock: <strong>{removeStockModal.product.stockCount ?? 0}</strong>
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -398,27 +349,11 @@ const StockDashboard = () => {
               <Input
                 id="remove-quantity"
                 type="number"
-                value={stockForm.quantity}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                min="1"
+                max={removeStockModal.product?.stockCount ?? undefined}
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
                 placeholder="Enter quantity to remove"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="remove-reference">Reference No</Label>
-              <Input
-                id="remove-reference"
-                value={stockForm.referenceNo}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, referenceNo: e.target.value }))}
-                placeholder="Enter reference number"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="remove-reason">Reason *</Label>
-              <Textarea
-                id="remove-reason"
-                value={stockForm.reason}
-                onChange={(e) => setStockForm((prev) => ({ ...prev, reason: e.target.value }))}
-                placeholder="Enter reason for removing stock"
               />
             </div>
           </div>
