@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Store, Search, Loader2, RefreshCw, Ban, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, Store, Search, Loader2, RefreshCw, Ban, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,13 +15,19 @@ import { toast } from 'sonner';
 
 interface Franchise {
   _id: string;
+  vendorId: string;
   name: string;
   shopName: string;
   email: string;
   phone: string;
   city?: string;
-  status: 'active' | 'blocked' | 'pending';
-  vendorId?: string;
+  status: 'active' | 'inactive' | 'blocked';
+  isBlocked: boolean;
+  shopAddress?: {
+    street: string;
+    pincode: string;
+    state: string;
+  };
   createdAt: string;
 }
 
@@ -66,11 +72,20 @@ const FranchiseList = () => {
     fetchFranchises();
   }, [fetchFranchises]);
 
-  const filteredFranchises = franchises.filter((franchise) =>
-    franchise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    franchise.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    franchise.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFranchises = franchises.filter((franchise) => {
+    const searchLower = searchTerm?.toLowerCase() || '';
+    const name = franchise?.name?.toLowerCase() || '';
+    const shopName = franchise?.shopName?.toLowerCase() || '';
+    const email = franchise?.email?.toLowerCase() || '';
+    const vendorId = franchise?.vendorId?.toLowerCase() || '';
+    
+    return (
+      name.includes(searchLower) ||
+      shopName.includes(searchLower) ||
+      email.includes(searchLower) ||
+      vendorId.includes(searchLower)
+    );
+  });
 
   const uniqueCities = [...new Set(franchises.map((f) => f.city).filter(Boolean))];
 
@@ -95,16 +110,17 @@ const FranchiseList = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (franchise: Franchise) => {
+    if (franchise.isBlocked) {
+      return <Badge variant="destructive">Blocked</Badge>;
+    }
+    switch (franchise.status) {
       case 'active':
-        return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>;
-      case 'blocked':
-        return <Badge variant="destructive">Blocked</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge className="bg-emerald-600 hover:bg-emerald-700">Active</Badge>;
+      case 'inactive':
+        return <Badge variant="secondary">Inactive</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{franchise.status || 'Unknown'}</Badge>;
     }
   };
 
@@ -212,24 +228,21 @@ const FranchiseList = () => {
                           <Store className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{franchise.shopName}</p>
-                          {franchise.vendorId && (
-                            <p className="text-xs text-muted-foreground">{franchise.vendorId}</p>
-                          )}
+                          <p className="font-medium text-foreground">{franchise.shopName || 'Unnamed Shop'}</p>
+                          <p className="text-xs font-mono text-muted-foreground">{franchise.vendorId || '-'}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{franchise.name}</TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {franchise.phone}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {franchise.email}
-                        </div>
+                      <div>
+                        <p className="font-medium">{franchise.name || 'Unknown'}</p>
+                        <p className="text-xs text-muted-foreground">{franchise.email || '-'}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        {franchise.phone || '-'}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -242,9 +255,9 @@ const FranchiseList = () => {
                         <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
-                    <TableCell>{getStatusBadge(franchise.status)}</TableCell>
+                    <TableCell>{getStatusBadge(franchise)}</TableCell>
                     <TableCell className="text-right">
-                      {franchise.status !== 'blocked' && (
+                      {!franchise.isBlocked && (
                         <Button
                           size="sm"
                           variant="outline"
