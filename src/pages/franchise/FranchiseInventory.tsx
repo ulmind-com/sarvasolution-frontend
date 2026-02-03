@@ -26,6 +26,13 @@ interface InventoryItem {
     productImage?: { url: string };
     category: string;
     mrp: number;
+    productDP: number;
+    bv: number;
+    pv: number;
+    gst: number;
+    cgst: number;
+    sgst: number;
+    hsnCode?: string;
   };
   stockQuantity: number;
   purchasePrice: number;
@@ -173,17 +180,18 @@ const FranchiseInventory = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-center">My Stock</TableHead>
-                      <TableHead>Pricing</TableHead>
-                      <TableHead>Last Purchased</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="min-w-[200px]">Product Details</TableHead>
+                      <TableHead className="text-center min-w-[100px]">My Stock</TableHead>
+                      <TableHead className="min-w-[150px]">Pricing (Raw)</TableHead>
+                      <TableHead className="min-w-[100px]">Points & Business</TableHead>
+                      <TableHead className="min-w-[120px]">Taxation</TableHead>
+                      <TableHead className="min-w-[100px]">Last Purchased</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredInventory.map((item) => (
                       <TableRow key={item._id}>
-                        {/* Product */}
+                        {/* Product Details */}
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
@@ -204,6 +212,11 @@ const FranchiseInventory = () => {
                               <Badge variant="secondary" className="mt-1 capitalize text-xs">
                                 {item.product?.category || 'General'}
                               </Badge>
+                              {item.product?.hsnCode && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  HSN: {item.product.hsnCode}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </TableCell>
@@ -217,19 +230,63 @@ const FranchiseInventory = () => {
                           >
                             {item.stockQuantity}
                           </span>
-                          {item.stockQuantity < 10 && item.stockQuantity > 0 && (
-                            <p className="text-xs text-destructive">Low Stock</p>
-                          )}
+                          <div className="mt-1">
+                            {item.stockQuantity > 0 ? (
+                              <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                                In Stock
+                              </Badge>
+                            ) : (
+                              <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+                            )}
+                          </div>
                         </TableCell>
 
-                        {/* Pricing */}
+                        {/* Pricing (Raw) */}
                         <TableCell>
-                          <div>
-                            <p className="font-bold text-primary">
-                              DP: {formatCurrency(item.purchasePrice)}
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">MRP:</span>{' '}
+                              <span className="font-medium">{formatCurrency(item.product?.mrp || 0)}</span>
                             </p>
-                            <p className="text-sm text-muted-foreground line-through">
-                              MRP: {formatCurrency(item.product?.mrp || 0)}
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">DP:</span>{' '}
+                              <span className="font-medium text-primary">{formatCurrency(item.product?.productDP || 0)}</span>
+                            </p>
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">Buy Price:</span>{' '}
+                              <span className="font-bold text-primary">{formatCurrency(item.purchasePrice)}</span>
+                            </p>
+                          </div>
+                        </TableCell>
+
+                        {/* Points & Business */}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">BV:</span>{' '}
+                              <span className="font-medium">{item.product?.bv ?? 0}</span>
+                            </p>
+                            <p className="text-sm">
+                              <span className="text-muted-foreground">PV:</span>{' '}
+                              <span className="font-medium">{item.product?.pv ?? 0}</span>
+                            </p>
+                          </div>
+                        </TableCell>
+
+                        {/* Taxation */}
+                        <TableCell>
+                          <div className="space-y-1 text-sm">
+                            <p>
+                              <span className="text-muted-foreground">GST:</span>{' '}
+                              <span className="font-medium">{item.product?.gst ?? 0}%</span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">CGST:</span>{' '}
+                              <span className="font-medium">{item.product?.cgst ?? 0}%</span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">SGST:</span>{' '}
+                              <span className="font-medium">{item.product?.sgst ?? 0}%</span>
                             </p>
                           </div>
                         </TableCell>
@@ -237,17 +294,6 @@ const FranchiseInventory = () => {
                         {/* Last Purchased */}
                         <TableCell>
                           <p className="text-sm">{formatDate(item.purchaseDate)}</p>
-                        </TableCell>
-
-                        {/* Status */}
-                        <TableCell className="text-center">
-                          {item.stockQuantity > 0 ? (
-                            <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20">
-                              In Stock
-                            </Badge>
-                          ) : (
-                            <Badge variant="destructive">Out of Stock</Badge>
-                          )}
                         </TableCell>
                       </TableRow>
                     ))}
