@@ -12,16 +12,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Home,
   Users,
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Menu,
   Shield,
   UserCog,
   Package,
+  Plus,
+  List,
+  Store,
+  ShoppingCart,
+  History,
+  FileText,
+  Warehouse,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -31,17 +45,58 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-const menuItems = [
+interface MenuItem {
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface MenuSection {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  items: MenuItem[];
+}
+
+const simpleMenuItems: MenuItem[] = [
   { path: '/admin', label: 'Dashboard', icon: Home },
   { path: '/admin/users', label: 'User Management', icon: Users },
-  { path: '/admin/products', label: 'Products', icon: Package },
   { path: '/admin/payouts', label: 'Payout Requests', icon: CreditCard },
   { path: '/admin/profile', label: 'My Profile', icon: UserCog },
+];
+
+const menuSections: MenuSection[] = [
+  {
+    label: 'Product Management',
+    icon: Package,
+    items: [
+      { path: '/admin/products/add', label: 'Add Product', icon: Plus },
+      { path: '/admin/products/list', label: 'Product List', icon: List },
+    ],
+  },
+  {
+    label: 'Franchise Management',
+    icon: Store,
+    items: [
+      { path: '/admin/franchise/add', label: 'Add New Franchise', icon: Plus },
+      { path: '/admin/franchise/list', label: 'All Franchises', icon: List },
+      { path: '/admin/franchise/sale', label: 'Sale to Franchise', icon: ShoppingCart },
+      { path: '/admin/franchise/history', label: 'Sale History', icon: History },
+      { path: '/admin/franchise/requests', label: 'Product Requests', icon: FileText },
+    ],
+  },
+  {
+    label: 'Stock/Inventory',
+    icon: Warehouse,
+    items: [
+      { path: '/admin/stock/dashboard', label: 'Stock Dashboard', icon: AlertTriangle },
+    ],
+  },
 ];
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [openSections, setOpenSections] = useState<string[]>(['Product Management', 'Franchise Management', 'Stock/Inventory']);
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,6 +105,16 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     logout();
     navigate('/');
   };
+
+  const toggleSection = (label: string) => {
+    setOpenSections((prev) =>
+      prev.includes(label) ? prev.filter((s) => s !== label) : [...prev, label]
+    );
+  };
+
+  const isPathActive = (path: string) => location.pathname === path;
+  const isSectionActive = (section: MenuSection) =>
+    section.items.some((item) => location.pathname.startsWith(item.path));
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -63,7 +128,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       
       {/* Sidebar - Darker Admin Theme with Glass */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-secondary/95 backdrop-blur-md border-r border-border/30 transition-all duration-300",
+        "fixed lg:static inset-y-0 left-0 z-50 flex flex-col bg-secondary/95 backdrop-blur-md border-r border-border/30 transition-all duration-300 overflow-hidden",
         collapsed ? "w-16" : "w-64",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
@@ -88,9 +153,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </div>
         
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {/* Simple Menu Items */}
+          {simpleMenuItems.map((item) => {
+            const isActive = isPathActive(item.path);
             return (
               <Link
                 key={item.path}
@@ -108,6 +174,63 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               </Link>
             );
           })}
+
+          {/* Divider */}
+          {!collapsed && <div className="border-t border-secondary-foreground/10 my-3" />}
+
+          {/* Collapsible Sections */}
+          {menuSections.map((section) => (
+            <Collapsible
+              key={section.label}
+              open={!collapsed && openSections.includes(section.label)}
+              onOpenChange={() => !collapsed && toggleSection(section.label)}
+            >
+              <CollapsibleTrigger asChild>
+                <button
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                    isSectionActive(section)
+                      ? "text-primary bg-primary/10"
+                      : "text-secondary-foreground/70 hover:bg-secondary-foreground/10 hover:text-secondary-foreground"
+                  )}
+                >
+                  <section.icon className="h-5 w-5 flex-shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="font-medium flex-1 text-left">{section.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          openSections.includes(section.label) ? "rotate-180" : ""
+                        )}
+                      />
+                    </>
+                  )}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="ml-4 mt-1 space-y-1">
+                {section.items.map((item) => {
+                  const isActive = isPathActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm",
+                        isActive 
+                          ? "bg-primary text-primary-foreground shadow-glow-primary" 
+                          : "text-secondary-foreground/60 hover:bg-secondary-foreground/10 hover:text-secondary-foreground"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4 flex-shrink-0" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
         </nav>
         
         {/* Admin Info */}

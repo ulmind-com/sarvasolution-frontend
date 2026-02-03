@@ -11,6 +11,7 @@ import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import FranchiseLogin from "./pages/FranchiseLogin";
 
 // Dashboard
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -31,8 +32,21 @@ import AdminLayout from "./components/layout/AdminLayout";
 import AdminHome from "./pages/admin/AdminHome";
 import UserManagement from "./pages/admin/UserManagement";
 import UserDetail from "./pages/admin/UserDetail";
-import ProductManagement from "./pages/admin/ProductManagement";
 import PayoutRequests from "./pages/admin/PayoutRequests";
+
+// Admin - Products
+import AddProduct from "./pages/admin/products/AddProduct";
+import ProductList from "./pages/admin/products/ProductList";
+
+// Admin - Stock
+import StockDashboard from "./pages/admin/stock/StockDashboard";
+
+// Admin - Franchise
+import AddFranchise from "./pages/admin/franchise/AddFranchise";
+import FranchiseList from "./pages/admin/franchise/FranchiseList";
+import SaleToFranchise from "./pages/admin/franchise/SaleToFranchise";
+import SaleHistory from "./pages/admin/franchise/SaleHistory";
+import FranchiseRequests from "./pages/admin/franchise/FranchiseRequests";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +72,7 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/franchise/login" element={<FranchiseLogin />} />
       
       {/* Dashboard Routes */}
       <Route path="/dashboard" element={
@@ -167,17 +182,72 @@ const AppRoutes = () => {
           </AdminLayout>
         </ProtectedRoute>
       } />
-      <Route path="/admin/products" element={
-        <ProtectedRoute requireAdmin>
-          <AdminLayout>
-            <ProductManagement />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
       <Route path="/admin/payouts" element={
         <ProtectedRoute requireAdmin>
           <AdminLayout>
             <PayoutRequests />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin - Product Management */}
+      <Route path="/admin/products/add" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <AddProduct />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/products/list" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <ProductList />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin - Stock Management */}
+      <Route path="/admin/stock/dashboard" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <StockDashboard />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin - Franchise Management */}
+      <Route path="/admin/franchise/add" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <AddFranchise />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/franchise/list" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <FranchiseList />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/franchise/sale" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <SaleToFranchise />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/franchise/history" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <SaleHistory />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/franchise/requests" element={
+        <ProtectedRoute requireAdmin>
+          <AdminLayout>
+            <FranchiseRequests />
           </AdminLayout>
         </ProtectedRoute>
       } />
