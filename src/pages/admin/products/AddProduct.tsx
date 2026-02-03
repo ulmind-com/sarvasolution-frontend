@@ -30,6 +30,9 @@ const [formData, setFormData] = useState({
     mrp: '',
     category: '',
     stockQuantity: '',
+    productDP: '',   // Dealer Price
+    bv: '',          // Business Volume
+    pv: '',          // Point Value
     gst: '',
     cgst: '',
     sgst: '',
@@ -62,6 +65,9 @@ const [formData, setFormData] = useState({
       mrp: '',
       category: '',
       stockQuantity: '',
+      productDP: '',
+      bv: '',
+      pv: '',
       gst: '',
       cgst: '',
       sgst: '',
@@ -74,7 +80,8 @@ const [formData, setFormData] = useState({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.productName || !formData.description || !formData.price || !formData.mrp || !formData.category || !formData.stockQuantity) {
+    // Validate required fields including new ones
+    if (!formData.productName || !formData.description || !formData.price || !formData.mrp || !formData.category || !formData.stockQuantity || !formData.productDP || !formData.bv || !formData.pv) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -88,24 +95,31 @@ const [formData, setFormData] = useState({
 
     try {
       const submitData = new FormData();
-      // Required fields - append exactly as named in Swagger
+      
+      // Text fields
       submitData.append('productName', formData.productName);
       submitData.append('description', formData.description);
+      submitData.append('category', formData.category);
+      if (formData.hsnCode) submitData.append('hsnCode', formData.hsnCode);
+      
+      // Numeric fields (required)
       submitData.append('price', formData.price);
       submitData.append('mrp', formData.mrp);
-      submitData.append('category', formData.category);
       submitData.append('stockQuantity', formData.stockQuantity);
       
-      // Optional fields - only append if value exists
+      // NEW: Business fields (required)
+      submitData.append('productDP', formData.productDP);
+      submitData.append('bv', formData.bv);
+      submitData.append('pv', formData.pv);
+      
+      // Tax fields (optional)
       if (formData.gst) submitData.append('gst', formData.gst);
       if (formData.cgst) submitData.append('cgst', formData.cgst);
       if (formData.sgst) submitData.append('sgst', formData.sgst);
-      if (formData.hsnCode) submitData.append('hsnCode', formData.hsnCode);
       
-      // Append image file (ensure filename is present for stricter backends)
+      // Binary file
       submitData.append('productImage', imageFile, imageFile.name);
 
-      // Override axios instance default JSON header for this request
       await api.post('/api/v1/admin/product/create', submitData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -205,16 +219,30 @@ const [formData, setFormData] = useState({
             </CardContent>
           </Card>
 
-          {/* Pricing, Stock & Image */}
+          {/* Pricing & Business */}
           <Card>
             <CardHeader>
-              <CardTitle>Pricing & Stock</CardTitle>
-              <CardDescription>Set the product pricing, stock levels, and upload an image</CardDescription>
+              <CardTitle>Pricing & Business</CardTitle>
+              <CardDescription>Set product pricing, dealer price, and business volume</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price (₹) *</Label>
+                  <Label htmlFor="mrp">MRP (₹) *</Label>
+                  <Input
+                    id="mrp"
+                    name="mrp"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.mrp}
+                    onChange={handleInputChange}
+                    placeholder="Maximum retail price"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="price">Selling Price (₹) *</Label>
                   <Input
                     id="price"
                     name="price"
@@ -227,17 +255,48 @@ const [formData, setFormData] = useState({
                     required
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="mrp">MRP (₹) *</Label>
+                  <Label htmlFor="productDP">Dealer Price (₹) *</Label>
                   <Input
-                    id="mrp"
-                    name="mrp"
+                    id="productDP"
+                    name="productDP"
                     type="number"
                     min="0"
                     step="0.01"
-                    value={formData.mrp}
+                    value={formData.productDP}
                     onChange={handleInputChange}
-                    placeholder="Maximum retail price"
+                    placeholder="DP"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bv">Business Volume (BV) *</Label>
+                  <Input
+                    id="bv"
+                    name="bv"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.bv}
+                    onChange={handleInputChange}
+                    placeholder="BV"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pv">Point Value (PV) *</Label>
+                  <Input
+                    id="pv"
+                    name="pv"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.pv}
+                    onChange={handleInputChange}
+                    placeholder="PV"
                     required
                   />
                 </div>
