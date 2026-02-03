@@ -130,19 +130,19 @@ const FranchiseDashboard = () => {
             </Card>
           </Link>
 
-          <Link to="/franchise/requests">
+          <Link to="/franchise/sale/create">
             <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
               <CardHeader>
                 <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-2">
                   <ShoppingCart className="h-6 w-6 text-green-500" />
                 </div>
-                <CardTitle>Request Products</CardTitle>
-                <CardDescription>Request new stock from admin</CardDescription>
+                <CardTitle>Create Bill</CardTitle>
+                <CardDescription>Sell products to members</CardDescription>
               </CardHeader>
             </Card>
           </Link>
 
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
             <CardHeader>
               <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-2">
                 <FileText className="h-6 w-6 text-blue-500" />
