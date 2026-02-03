@@ -11,20 +11,26 @@ import { toast } from 'sonner';
 
 interface Product {
   _id: string;
-  name: string;
+  productName?: string;
+  name?: string;
   price: number;
   mrp?: number;
-  bv: number;
+  bv?: number;
   description: string;
-  segment: string;
+  category?: string;
+  segment?: string;
+  stockQuantity?: number;
   stockCount?: number;
+  reorderLevel?: number;
+  sku?: string;
+  hsnCode?: string;
   productImage?: {
     url: string;
-    public_id: string;
+    public_id?: string;
   };
   image?: {
     url: string;
-    publicId: string;
+    publicId?: string;
   };
   createdAt: string;
 }
@@ -35,6 +41,18 @@ interface PaginationInfo {
   totalProducts: number;
   limit: number;
 }
+
+const getProductName = (product: Product): string => {
+  return product.productName || product.name || 'Unnamed Product';
+};
+
+const getProductCategory = (product: Product): string => {
+  return product.category || product.segment || 'Uncategorized';
+};
+
+const getProductStock = (product: Product): number | null => {
+  return product.stockQuantity ?? product.stockCount ?? null;
+};
 
 const getProductImageUrl = (product: Product): string | null => {
   return product.productImage?.url || product.image?.url || null;
@@ -90,12 +108,14 @@ const ProductList = () => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.segment.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter((product) => {
+    const name = getProductName(product).toLowerCase();
+    const category = getProductCategory(product).toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return name.includes(search) || category.includes(search);
+  });
 
-  const getSegmentColor = (segment: string) => {
+  const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
       'health care': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       'aquaculture': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
@@ -104,7 +124,17 @@ const ProductList = () => {
       'home care': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
       'luxury goods': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
     };
-    return colors[segment.toLowerCase()] || 'bg-muted text-muted-foreground';
+    return colors[category.toLowerCase()] || 'bg-muted text-muted-foreground';
+  };
+
+  const getStockBadgeStyle = (product: Product) => {
+    const stock = getProductStock(product);
+    const reorderLevel = product.reorderLevel ?? 10;
+    
+    if (stock === null) return '';
+    if (stock <= 0) return 'text-destructive font-bold';
+    if (stock < reorderLevel) return 'text-destructive font-medium';
+    return 'text-foreground';
   };
 
   const handlePageChange = (newPage: number) => {
@@ -179,60 +209,73 @@ const ProductList = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">Image</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Product Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">BV</TableHead>
+                  <TableHead className="text-right">MRP</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product._id}>
-                    <TableCell>
-                      <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden">
-                        {getProductImageUrl(product) ? (
-                          <img
-                            src={getProductImageUrl(product)!}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                          />
+                {filteredProducts.map((product) => {
+                  const stock = getProductStock(product);
+                  const reorderLevel = product.reorderLevel ?? 10;
+                  const isLowStock = stock !== null && stock < reorderLevel;
+                  
+                  return (
+                    <TableRow key={product._id}>
+                      <TableCell>
+                        <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden">
+                          {getProductImageUrl(product) ? (
+                            <img
+                              src={getProductImageUrl(product)!}
+                              alt={getProductName(product)}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-foreground">{getProductName(product)}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {product.description}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={`capitalize ${getCategoryColor(getProductCategory(product))}`}
+                        >
+                          {getProductCategory(product)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        ₹{product.price.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {product.mrp ? `₹${product.mrp.toLocaleString()}` : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {stock !== null ? (
+                          <Badge 
+                            variant={isLowStock ? 'destructive' : 'outline'}
+                            className={isLowStock ? '' : getStockBadgeStyle(product)}
+                          >
+                            {stock}
+                          </Badge>
                         ) : (
-                          <div className="h-full w-full flex items-center justify-center">
-                            <Package className="h-6 w-6 text-muted-foreground" />
-                          </div>
+                          <span className="text-muted-foreground">-</span>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-foreground">{product.name}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">
-                          {product.description}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={`capitalize ${getSegmentColor(product.segment)}`}
-                      >
-                        {product.segment}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ₹{product.price.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="outline">{product.bv} BV</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={product.stockCount && product.stockCount < 10 ? 'text-destructive font-medium' : ''}>
-                        {product.stockCount ?? '-'}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>

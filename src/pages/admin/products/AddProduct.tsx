@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,12 +24,15 @@ const AddProduct = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
+    productName: '',
     description: '',
     price: '',
     mrp: '',
-    bv: '',
-    segment: '',
+    category: '',
+    stockQuantity: '',
+    reorderLevel: '',
+    sku: '',
+    hsnCode: '',
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -50,11 +53,32 @@ const AddProduct = () => {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      productName: '',
+      description: '',
+      price: '',
+      mrp: '',
+      category: '',
+      stockQuantity: '',
+      reorderLevel: '',
+      sku: '',
+      hsnCode: '',
+    });
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.segment) {
+    if (!formData.productName || !formData.description || !formData.price || !formData.mrp || !formData.category || !formData.stockQuantity) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!imageFile) {
+      toast.error('Please upload a product image');
       return;
     }
 
@@ -62,24 +86,30 @@ const AddProduct = () => {
 
     try {
       const submitData = new FormData();
-      submitData.append('name', formData.name);
+      submitData.append('productName', formData.productName);
       submitData.append('description', formData.description);
       submitData.append('price', formData.price);
-      submitData.append('mrp', formData.mrp || formData.price);
-      submitData.append('bv', formData.bv || '0');
-      submitData.append('segment', formData.segment);
+      submitData.append('mrp', formData.mrp);
+      submitData.append('category', formData.category);
+      submitData.append('stockQuantity', formData.stockQuantity);
       
-      if (imageFile) {
-        submitData.append('productImage', imageFile);
+      if (formData.reorderLevel) {
+        submitData.append('reorderLevel', formData.reorderLevel);
       }
+      if (formData.sku) {
+        submitData.append('sku', formData.sku);
+      }
+      if (formData.hsnCode) {
+        submitData.append('hsnCode', formData.hsnCode);
+      }
+      
+      submitData.append('productImage', imageFile);
 
-      await api.post('/api/v1/admin/product/create', submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Let browser set Content-Type with boundary for multipart/form-data
+      await api.post('/api/v1/admin/product/create', submitData);
 
       toast.success('Product created successfully');
+      resetForm();
       navigate('/admin/products/list');
     } catch (error: any) {
       console.error('Error creating product:', error);
@@ -107,16 +137,19 @@ const AddProduct = () => {
           {/* Product Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Product Details</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Product Details
+              </CardTitle>
               <CardDescription>Enter the basic product information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
+                <Label htmlFor="productName">Product Name *</Label>
                 <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="productName"
+                  name="productName"
+                  value={formData.productName}
                   onChange={handleInputChange}
                   placeholder="Enter product name"
                   required
@@ -124,7 +157,7 @@ const AddProduct = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
                   name="description"
@@ -132,14 +165,15 @@ const AddProduct = () => {
                   onChange={handleInputChange}
                   placeholder="Enter product description"
                   rows={4}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="segment">Category *</Label>
+                <Label htmlFor="category">Category *</Label>
                 <Select
-                  value={formData.segment}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, segment: value }))}
+                  value={formData.category}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
@@ -153,14 +187,37 @@ const AddProduct = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sku">SKU</Label>
+                  <Input
+                    id="sku"
+                    name="sku"
+                    value={formData.sku}
+                    onChange={handleInputChange}
+                    placeholder="e.g., SKU-001"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hsnCode">HSN Code</Label>
+                  <Input
+                    id="hsnCode"
+                    name="hsnCode"
+                    value={formData.hsnCode}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 1234"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Pricing & Image */}
+          {/* Pricing, Stock & Image */}
           <Card>
             <CardHeader>
-              <CardTitle>Pricing & Image</CardTitle>
-              <CardDescription>Set the product pricing and upload an image</CardDescription>
+              <CardTitle>Pricing & Stock</CardTitle>
+              <CardDescription>Set the product pricing, stock levels, and upload an image</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -170,39 +227,60 @@ const AddProduct = () => {
                     id="price"
                     name="price"
                     type="number"
+                    min="0"
+                    step="0.01"
                     value={formData.price}
                     onChange={handleInputChange}
-                    placeholder="0"
+                    placeholder="Selling price"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="mrp">MRP (₹)</Label>
+                  <Label htmlFor="mrp">MRP (₹) *</Label>
                   <Input
                     id="mrp"
                     name="mrp"
                     type="number"
+                    min="0"
+                    step="0.01"
                     value={formData.mrp}
                     onChange={handleInputChange}
-                    placeholder="0"
+                    placeholder="Maximum retail price"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="stockQuantity">Initial Stock *</Label>
+                  <Input
+                    id="stockQuantity"
+                    name="stockQuantity"
+                    type="number"
+                    min="0"
+                    value={formData.stockQuantity}
+                    onChange={handleInputChange}
+                    placeholder="Quantity in stock"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reorderLevel">Reorder Level</Label>
+                  <Input
+                    id="reorderLevel"
+                    name="reorderLevel"
+                    type="number"
+                    min="0"
+                    value={formData.reorderLevel}
+                    onChange={handleInputChange}
+                    placeholder="Low stock alert threshold"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bv">Business Volume (BV)</Label>
-                <Input
-                  id="bv"
-                  name="bv"
-                  type="number"
-                  value={formData.bv}
-                  onChange={handleInputChange}
-                  placeholder="0"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Product Image</Label>
+                <Label>Product Image *</Label>
                 <div className="border-2 border-dashed border-border rounded-lg p-4">
                   {imagePreview ? (
                     <div className="relative">
@@ -225,9 +303,10 @@ const AddProduct = () => {
                       </Button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center h-48 cursor-pointer">
+                    <label className="flex flex-col items-center justify-center h-48 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors">
                       <Upload className="h-10 w-10 text-muted-foreground mb-2" />
                       <span className="text-sm text-muted-foreground">Click to upload image</span>
+                      <span className="text-xs text-muted-foreground mt-1">PNG, JPG, WEBP up to 5MB</span>
                       <input
                         type="file"
                         accept="image/*"
