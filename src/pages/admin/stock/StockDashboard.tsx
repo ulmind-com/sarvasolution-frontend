@@ -75,9 +75,11 @@ const StockDashboard = () => {
     fetchData();
   }, [fetchData]);
 
-  const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products?.filter((product) => {
+    const searchLower = searchTerm?.toLowerCase() || '';
+    const name = product?.name?.toLowerCase() || '';
+    return name.includes(searchLower);
+  }) || [];
 
   const handleAddStock = async () => {
     if (!addStockModal.product || !stockQuantity) {
