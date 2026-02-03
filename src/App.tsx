@@ -50,6 +50,7 @@ import FranchiseRequests from "./pages/admin/franchise/FranchiseRequests";
 
 // Franchise Portal
 import FranchiseDashboard from "./pages/franchise/FranchiseDashboard";
+import FranchiseInventory from "./pages/franchise/FranchiseInventory";
 
 const queryClient = new QueryClient();
 
@@ -257,6 +258,7 @@ const AppRoutes = () => {
       
       {/* Franchise Portal Routes */}
       <Route path="/franchise/dashboard" element={<FranchiseDashboard />} />
+      <Route path="/franchise/inventory" element={<FranchiseInventory />} />
       
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
