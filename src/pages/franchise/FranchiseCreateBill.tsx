@@ -64,6 +64,15 @@ const FranchiseCreateBill = () => {
   // Sale State
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [saleResult, setSaleResult] = useState<{
+    saleNo?: string;
+    grandTotal?: number;
+    totalBV?: number;
+    totalPV?: number;
+    userActivated?: boolean;
+    isFirstPurchase?: boolean;
+    emailSent?: boolean;
+  } | null>(null);
 
   // Redirect if not authenticated (after all hooks)
   if (!isAuthenticated) {
@@ -226,7 +235,17 @@ const FranchiseCreateBill = () => {
         paymentMethod,
       };
 
-      await processFranchiseSale(payload);
+      const response = await processFranchiseSale(payload);
+      const data = response.data || response;
+      setSaleResult({
+        saleNo: data.sale?.saleNo,
+        grandTotal: data.grandTotal,
+        totalBV: data.totalBV,
+        totalPV: data.totalPV,
+        userActivated: data.userActivated,
+        isFirstPurchase: data.isFirstPurchase,
+        emailSent: data.emailSent,
+      });
       setShowSuccessDialog(true);
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 'Failed to generate bill';
@@ -238,6 +257,7 @@ const FranchiseCreateBill = () => {
 
   const handleCloseSuccess = () => {
     setShowSuccessDialog(false);
+    setSaleResult(null);
     setVerifiedMember(null);
     setMemberIdInput('');
     setProductDetails(null);
@@ -284,7 +304,7 @@ const FranchiseCreateBill = () => {
                       onChange={(e) => setMemberIdInput(e.target.value.toUpperCase())}
                       onKeyDown={(e) => e.key === 'Enter' && handleVerifyMember()}
                     />
-                    <Button onClick={handleVerifyMember} disabled={isMemberLoading}>
+                    <Button type="button" onClick={handleVerifyMember} disabled={isMemberLoading}>
                       <Search className="h-4 w-4 mr-2" />
                       {isMemberLoading ? 'Verifying...' : 'Verify'}
                     </Button>
@@ -332,10 +352,10 @@ const FranchiseCreateBill = () => {
                     onKeyDown={(e) => e.key === 'Enter' && handleCheckProduct()}
                     disabled={!verifiedMember}
                   />
-                  <Button onClick={handleCheckProduct} disabled={isProductLoading || !verifiedMember}>
-                    <Search className="h-4 w-4 mr-2" />
-                    {isProductLoading ? 'Checking...' : 'Check'}
-                  </Button>
+                    <Button type="button" onClick={handleCheckProduct} disabled={isProductLoading || !verifiedMember}>
+                      <Search className="h-4 w-4 mr-2" />
+                      {isProductLoading ? 'Checking...' : 'Check'}
+                    </Button>
                 </div>
 
                 {/* Product Preview */}
@@ -390,7 +410,7 @@ const FranchiseCreateBill = () => {
                           className="w-20"
                         />
                       </div>
-                      <Button onClick={handleAddToCart} className="flex-1">
+                      <Button type="button" onClick={handleAddToCart} className="flex-1">
                         Add to Bill
                       </Button>
                     </div>
@@ -498,6 +518,7 @@ const FranchiseCreateBill = () => {
 
                     {/* Generate Bill Button */}
                     <Button
+                      type="button"
                       className="w-full"
                       size="lg"
                       onClick={handleGenerateBill}
@@ -515,23 +536,59 @@ const FranchiseCreateBill = () => {
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="mx-auto h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
               <CheckCircle2 className="h-8 w-8 text-green-500" />
             </div>
-            <DialogTitle className="text-center text-xl">Sale Completed!</DialogTitle>
+            <DialogTitle className="text-center text-xl">Sale Completed Successfully! ✅</DialogTitle>
             <DialogDescription className="text-center">
-              The sale has been processed successfully for {verifiedMember?.name}
+              Invoice generated for {verifiedMember?.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="p-4 bg-muted rounded-lg text-center space-y-1">
-            <p className="text-2xl font-bold">₹{totalAmount.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground">
-              BV: {totalBV} | PV: {totalPV}
+          
+          {/* Sale Number */}
+          {saleResult?.saleNo && (
+            <div className="text-center p-3 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground">Sale No</p>
+              <p className="font-mono font-bold text-lg">{saleResult.saleNo}</p>
+            </div>
+          )}
+
+          {/* Grand Total */}
+          <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-center">
+            <p className="text-xs text-muted-foreground mb-1">Grand Total</p>
+            <p className="text-3xl font-bold text-primary">
+              ₹{(saleResult?.grandTotal ?? totalAmount).toLocaleString()}
             </p>
           </div>
-          <Button onClick={handleCloseSuccess} className="w-full">
+
+          {/* BV/PV Summary */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-muted rounded-lg text-center">
+              <p className="text-xs text-muted-foreground">Total BV</p>
+              <p className="font-bold text-lg">{saleResult?.totalBV ?? totalBV}</p>
+            </div>
+            <div className="p-3 bg-muted rounded-lg text-center">
+              <p className="text-xs text-muted-foreground">Total PV</p>
+              <p className="font-bold text-lg">{saleResult?.totalPV ?? totalPV}</p>
+            </div>
+          </div>
+
+          {/* Status Badges */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {saleResult?.userActivated && (
+              <Badge className="bg-green-500">User Activated! 🎉</Badge>
+            )}
+            {saleResult?.isFirstPurchase && (
+              <Badge variant="secondary">First Purchase</Badge>
+            )}
+            {saleResult?.emailSent && (
+              <Badge variant="outline">Invoice Emailed ✉️</Badge>
+            )}
+          </div>
+
+          <Button type="button" onClick={handleCloseSuccess} className="w-full">
             Create New Bill
           </Button>
         </DialogContent>
