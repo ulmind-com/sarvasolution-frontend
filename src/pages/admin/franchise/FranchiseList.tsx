@@ -58,7 +58,10 @@ const FranchiseList = () => {
       if (statusFilter !== 'all') params.status = statusFilter;
 
       const response = await api.get('/api/v1/admin/franchise/list', { params });
-      setFranchises(response.data.data || response.data.franchises || []);
+      // Handle nested response: { data: { franchises: [] } } or { franchises: [] }
+      const responseData = response.data?.data || response.data;
+      const franchiseArray = responseData?.franchises || [];
+      setFranchises(Array.isArray(franchiseArray) ? franchiseArray : []);
     } catch (error: any) {
       console.error('Error fetching franchises:', error);
       toast.error('Failed to fetch franchises');
