@@ -13,9 +13,12 @@ import { toast } from 'sonner';
 
 interface Product {
   _id: string;
-  name: string;
+  productName?: string;
+  name?: string;
   price: number;
-  segment: string;
+  category?: string;
+  segment?: string;
+  stockQuantity?: number;
   stockCount?: number;
   productImage?: {
     url: string;
@@ -75,9 +78,22 @@ const StockDashboard = () => {
     fetchData();
   }, [fetchData]);
 
+  // Helper functions to handle both old and new API field names
+  const getProductName = (product: Product): string => {
+    return product.productName || product.name || 'Unnamed Product';
+  };
+
+  const getProductCategory = (product: Product): string => {
+    return product.category || product.segment || 'Uncategorized';
+  };
+
+  const getProductStock = (product: Product): number => {
+    return product.stockQuantity ?? product.stockCount ?? 0;
+  };
+
   const filteredProducts = products?.filter((product) => {
     const searchLower = searchTerm?.toLowerCase() || '';
-    const name = product?.name?.toLowerCase() || '';
+    const name = getProductName(product).toLowerCase();
     return name.includes(searchLower);
   }) || [];
 
@@ -123,8 +139,8 @@ const StockDashboard = () => {
       return;
     }
 
-    // Check if quantity exceeds current stock
-    const currentStock = removeStockModal.product.stockCount ?? 0;
+    // Check if quantity exceeds current stock - use stockQuantity first, then stockCount
+    const currentStock = removeStockModal.product.stockQuantity ?? removeStockModal.product.stockCount ?? 0;
     if (qty > currentStock) {
       toast.error(`Cannot remove more than current stock (${currentStock})`);
       return;
@@ -225,36 +241,38 @@ const StockDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product._id}>
-                    <TableCell>
-                      <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden">
-                        {product.productImage?.url ? (
-                          <img
-                            src={product.productImage.url}
-                            alt={product.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center">
-                            <Package className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {product.segment}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={product.stockCount && product.stockCount < 10 ? 'destructive' : 'outline'}
-                      >
-                        {product.stockCount ?? 0}
-                      </Badge>
-                    </TableCell>
+                {filteredProducts.map((product) => {
+                  const stock = getProductStock(product);
+                  return (
+                    <TableRow key={product._id}>
+                      <TableCell>
+                        <div className="h-12 w-12 rounded-lg bg-muted overflow-hidden">
+                          {product.productImage?.url ? (
+                            <img
+                              src={product.productImage.url}
+                              alt={getProductName(product)}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{getProductName(product)}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="capitalize">
+                          {getProductCategory(product)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={stock < 10 ? 'destructive' : 'outline'}
+                        >
+                          {stock}
+                        </Badge>
+                      </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
@@ -290,7 +308,8 @@ const StockDashboard = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -303,7 +322,7 @@ const StockDashboard = () => {
           <DialogHeader>
             <DialogTitle>Add Stock</DialogTitle>
             <DialogDescription>
-              Add stock for <strong>{addStockModal.product?.name}</strong>
+              Add stock for <strong>{addStockModal.product ? getProductName(addStockModal.product) : ''}</strong>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -337,10 +356,10 @@ const StockDashboard = () => {
           <DialogHeader>
             <DialogTitle>Remove Stock</DialogTitle>
             <DialogDescription>
-              Remove stock from <strong>{removeStockModal.product?.name}</strong>
+              Remove stock from <strong>{removeStockModal.product ? getProductName(removeStockModal.product) : ''}</strong>
               {removeStockModal.product && (
                 <span className="block mt-1 text-sm">
-                  Current stock: <strong>{removeStockModal.product.stockCount ?? 0}</strong>
+                  Current stock: <strong>{getProductStock(removeStockModal.product)}</strong>
                 </span>
               )}
             </DialogDescription>
@@ -352,7 +371,7 @@ const StockDashboard = () => {
                 id="remove-quantity"
                 type="number"
                 min="1"
-                max={removeStockModal.product?.stockCount ?? undefined}
+                max={removeStockModal.product ? getProductStock(removeStockModal.product) : undefined}
                 value={stockQuantity}
                 onChange={(e) => setStockQuantity(e.target.value)}
                 placeholder="Enter quantity to remove"
@@ -377,7 +396,7 @@ const StockDashboard = () => {
           <DialogHeader>
             <DialogTitle>Stock History</DialogTitle>
             <DialogDescription>
-              History for <strong>{historyModal.product?.name}</strong>
+              History for <strong>{historyModal.product ? getProductName(historyModal.product) : ''}</strong>
             </DialogDescription>
           </DialogHeader>
           {isLoadingHistory ? (
