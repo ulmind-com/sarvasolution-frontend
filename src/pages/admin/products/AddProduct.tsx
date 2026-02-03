@@ -335,6 +335,9 @@ const [formData, setFormData] = useState({
                       />
                     </label>
                   )}
+                  {imageFile && !imagePreview && (
+                    <p className="text-sm text-muted-foreground mt-2">Selected: {imageFile.name}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
