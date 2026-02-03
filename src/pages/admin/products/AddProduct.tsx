@@ -88,20 +88,21 @@ const [formData, setFormData] = useState({
 
     try {
       const submitData = new FormData();
+      // Required fields - append exactly as named in Swagger
       submitData.append('productName', formData.productName);
       submitData.append('description', formData.description);
       submitData.append('price', formData.price);
       submitData.append('mrp', formData.mrp);
       submitData.append('category', formData.category);
       submitData.append('stockQuantity', formData.stockQuantity);
-      submitData.append('gst', formData.gst || '0');
-      submitData.append('cgst', formData.cgst || '0');
-      submitData.append('sgst', formData.sgst || '0');
       
-      if (formData.hsnCode) {
-        submitData.append('hsnCode', formData.hsnCode);
-      }
+      // Optional fields - only append if value exists
+      if (formData.gst) submitData.append('gst', formData.gst);
+      if (formData.cgst) submitData.append('cgst', formData.cgst);
+      if (formData.sgst) submitData.append('sgst', formData.sgst);
+      if (formData.hsnCode) submitData.append('hsnCode', formData.hsnCode);
       
+      // Append image file
       submitData.append('productImage', imageFile);
 
       // Let browser set Content-Type with boundary for multipart/form-data
