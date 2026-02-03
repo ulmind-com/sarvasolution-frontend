@@ -118,25 +118,29 @@ const FranchiseDashboard = () => {
         {/* Quick Actions */}
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <CardHeader>
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>View Products</CardTitle>
-              <CardDescription>Browse available products in inventory</CardDescription>
-            </CardHeader>
-          </Card>
+          <Link to="/franchise/inventory">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle>View Products</CardTitle>
+                <CardDescription>Browse available products in inventory</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
 
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-            <CardHeader>
-              <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-2">
-                <ShoppingCart className="h-6 w-6 text-green-500" />
-              </div>
-              <CardTitle>Request Products</CardTitle>
-              <CardDescription>Request new stock from admin</CardDescription>
-            </CardHeader>
-          </Card>
+          <Link to="/franchise/requests">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-2">
+                  <ShoppingCart className="h-6 w-6 text-green-500" />
+                </div>
+                <CardTitle>Request Products</CardTitle>
+                <CardDescription>Request new stock from admin</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
 
           <Card className="hover:border-primary/50 transition-colors cursor-pointer">
             <CardHeader>
