@@ -27,15 +27,25 @@ interface Sale {
   _id: string;
   invoiceNo?: string;
   invoiceNumber?: string;
-  franchiseId: {
+  invoiceDate?: string;
+  franchiseId?: {
+    _id: string;
+    shopName: string;
+    vendorId: string;
+    name: string;
+  };
+  franchise?: {
     _id: string;
     shopName: string;
     vendorId: string;
     name: string;
   };
   items: SaleItem[];
-  totalAmount: number;
-  status: string;
+  totalAmount?: number;
+  grandTotal?: number;
+  status?: string;
+  paymentStatus?: string;
+  pdfUrl?: string;
   createdAt: string;
 }
 
@@ -54,8 +64,10 @@ const SaleHistory = () => {
     setIsLoading(true);
     try {
       const response = await api.get('/api/v1/admin/sales/list');
-      const data = response.data.data || response.data;
-      setSales(Array.isArray(data) ? data : data.sales || []);
+      // Handle nested response: { data: { invoices: [...] } } or { data: { sales: [...] } }
+      const responseData = response.data?.data || response.data;
+      const salesArray = responseData?.invoices || responseData?.sales || [];
+      setSales(Array.isArray(salesArray) ? salesArray : []);
     } catch (error) {
       console.error('Error fetching sales:', error);
       toast.error('Failed to load sales history');
@@ -86,9 +98,9 @@ const SaleHistory = () => {
     switch (status?.toLowerCase()) {
       case 'completed':
       case 'paid':
-        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>;
       case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
+        return <Badge className="bg-amber-500 hover:bg-amber-600">Pending</Badge>;
       case 'cancelled':
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
@@ -96,10 +108,26 @@ const SaleHistory = () => {
     }
   };
 
-  const totalSalesAmount = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
-  const completedSales = sales.filter((s) => 
-    s.status?.toLowerCase() === 'completed' || s.status?.toLowerCase() === 'paid'
-  ).length;
+  // Helper to get franchise data (handles both franchiseId and franchise keys)
+  const getFranchiseData = (sale: Sale) => {
+    return sale.franchiseId || sale.franchise;
+  };
+
+  // Helper to get amount (handles both totalAmount and grandTotal)
+  const getAmount = (sale: Sale) => {
+    return sale.grandTotal || sale.totalAmount || 0;
+  };
+
+  // Helper to get status (handles both status and paymentStatus)
+  const getStatus = (sale: Sale) => {
+    return sale.paymentStatus || sale.status || 'Unknown';
+  };
+
+  const totalSalesAmount = sales.reduce((sum, sale) => sum + getAmount(sale), 0);
+  const completedSales = sales.filter((s) => {
+    const status = getStatus(s);
+    return status.toLowerCase() === 'completed' || status.toLowerCase() === 'paid';
+  }).length;
 
   const handleViewDetails = (sale: Sale) => {
     setSelectedSale(sale);
@@ -194,44 +222,58 @@ const SaleHistory = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSales.map((sale) => (
-                  <TableRow key={sale._id}>
-                    <TableCell className="font-mono font-medium">
-                      {sale.invoiceNo || sale.invoiceNumber || sale._id.slice(-8).toUpperCase()}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{sale.franchiseId?.shopName || 'N/A'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {sale.franchiseId?.vendorId || 'N/A'}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">{sale.items?.length || 0}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      ₹{(sale.totalAmount || 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell>{formatDate(sale.createdAt)}</TableCell>
-                    <TableCell>{getStatusBadge(sale.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0"
-                          onClick={() => handleViewDetails(sale)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredSales.map((sale) => {
+                  const franchiseData = getFranchiseData(sale);
+                  const amount = getAmount(sale);
+                  const status = getStatus(sale);
+                  const displayDate = sale.invoiceDate || sale.createdAt;
+                  
+                  return (
+                    <TableRow key={sale._id}>
+                      <TableCell className="font-mono font-medium">
+                        {sale.invoiceNo || sale.invoiceNumber || sale._id.slice(-8).toUpperCase()}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{franchiseData?.shopName || 'N/A'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {franchiseData?.vendorId || 'N/A'}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{sale.items?.length || 0}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        ₹{amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell>{formatDate(displayDate)}</TableCell>
+                      <TableCell>{getStatusBadge(status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => handleViewDetails(sale)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {sale.pdfUrl && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => window.open(sale.pdfUrl, '_blank')}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -252,9 +294,9 @@ const SaleHistory = () => {
             <div className="space-y-4">
               {/* Franchise Info */}
               <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium">{selectedSale.franchiseId?.shopName}</p>
+                <p className="font-medium">{getFranchiseData(selectedSale)?.shopName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {selectedSale.franchiseId?.name} • {selectedSale.franchiseId?.vendorId}
+                  {getFranchiseData(selectedSale)?.name} • {getFranchiseData(selectedSale)?.vendorId}
                 </p>
               </div>
 
@@ -280,14 +322,25 @@ const SaleHistory = () => {
               {/* Total */}
               <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
                 <span className="font-bold">Total Amount</span>
-                <span className="text-xl font-bold">₹{(selectedSale.totalAmount || 0).toLocaleString()}</span>
+                <span className="text-xl font-bold">₹{getAmount(selectedSale).toLocaleString()}</span>
               </div>
 
               {/* Date & Status */}
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Date: {formatDate(selectedSale.createdAt)}</span>
-                {getStatusBadge(selectedSale.status)}
+                <span className="text-muted-foreground">Date: {formatDate(selectedSale.invoiceDate || selectedSale.createdAt)}</span>
+                {getStatusBadge(getStatus(selectedSale))}
               </div>
+
+              {/* Download PDF Button */}
+              {selectedSale.pdfUrl && (
+                <Button
+                  className="w-full"
+                  onClick={() => window.open(selectedSale.pdfUrl, '_blank')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Invoice PDF
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

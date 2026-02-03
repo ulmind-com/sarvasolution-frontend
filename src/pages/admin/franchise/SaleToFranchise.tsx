@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, Store, Package, FileText, Loader2 } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, Store, Package, FileText, Loader2, Download, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 
@@ -36,6 +43,11 @@ interface CartItem {
   maxStock: number;
 }
 
+interface InvoiceResult {
+  invoiceNo: string;
+  pdfUrl: string;
+}
+
 const SaleToFranchise = () => {
   const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,6 +56,8 @@ const SaleToFranchise = () => {
   const [isLoadingFranchises, setIsLoadingFranchises] = useState(true);
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [invoiceResult, setInvoiceResult] = useState<InvoiceResult | null>(null);
 
   // Fetch franchises and products on mount
   useEffect(() => {
@@ -161,9 +175,15 @@ const SaleToFranchise = () => {
         })),
       };
 
-      await api.post('/api/v1/admin/sales/sell-to-franchise', payload);
+      const response = await api.post('/api/v1/admin/sales/sell-to-franchise', payload);
+      
+      // Extract invoice data from response
+      const invoiceData = response.data?.data?.invoice || response.data?.invoice || response.data;
+      const invoiceNo = invoiceData?.invoiceNo || invoiceData?.invoiceNumber || 'N/A';
+      const pdfUrl = invoiceData?.pdfUrl || '';
 
-      toast.success('Sale completed successfully!');
+      setInvoiceResult({ invoiceNo, pdfUrl });
+      setShowSuccessDialog(true);
       setCart([]);
       setSelectedFranchise('');
 
@@ -389,6 +409,40 @@ const SaleToFranchise = () => {
           </Card>
         </div>
       </div>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </div>
+            <DialogTitle className="text-center">Sale Completed Successfully!</DialogTitle>
+            <DialogDescription className="text-center">
+              Invoice <span className="font-mono font-bold">{invoiceResult?.invoiceNo}</span> has been generated.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-3 mt-4">
+            {invoiceResult?.pdfUrl && (
+              <Button
+                className="w-full"
+                onClick={() => window.open(invoiceResult.pdfUrl, '_blank')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Invoice PDF
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowSuccessDialog(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
