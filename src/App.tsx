@@ -26,6 +26,7 @@ import ChangePassword from "./pages/dashboard/ChangePassword";
 import CappingReport from "./pages/dashboard/CappingReport";
 import IncomeReport from "./pages/dashboard/IncomeReport";
 import WelcomeLetter from "./pages/dashboard/WelcomeLetter";
+import ProductCatalog from "./pages/user/ProductCatalog";
 
 // Admin
 import AdminLayout from "./components/layout/AdminLayout";
@@ -147,6 +148,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <IncomeReport />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/user/products" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <ProductCatalog />
           </DashboardLayout>
         </ProtectedRoute>
       } />
