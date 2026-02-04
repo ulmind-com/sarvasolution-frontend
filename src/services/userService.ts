@@ -39,7 +39,9 @@ export interface ProductsResponse {
 export interface ProductDetailsResponse {
   success: boolean;
   message: string;
-  data: Product;
+  data: {
+    product: Product;
+  };
 }
 
 // Fetch all products with pagination
