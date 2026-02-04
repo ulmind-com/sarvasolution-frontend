@@ -1,15 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ChevronLeft, ChevronRight, Package, Loader2, X, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Search, ChevronLeft, ChevronRight, Package } from 'lucide-react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAllProducts, getProductDetails, Product } from '@/services/userService';
 import { toast } from 'sonner';
+import ProductCard from '@/components/catalog/ProductCard';
+import ProductDetailsModal from '@/components/catalog/ProductDetailsModal';
 
 const ProductCatalog = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -80,17 +79,6 @@ const ProductCatalog = () => {
     setSelectedProduct(null);
   };
 
-  // Stock status logic (masks actual numbers)
-  const getStockStatus = (product: Product) => {
-    if (!product.isInStock) {
-      return { label: 'Out of Stock', variant: 'destructive' as const, pulse: false };
-    }
-    if (product.stockQuantity < 10) {
-      return { label: 'Hurry! Low Stock', variant: 'secondary' as const, pulse: true };
-    }
-    return { label: 'In Stock', variant: 'default' as const, pulse: false };
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -143,78 +131,14 @@ const ProductCatalog = () => {
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {filteredProducts.map((product, index) => {
-              const stockStatus = getStockStatus(product);
-              return (
-                <motion.div
-                  key={product._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card
-                    className="overflow-hidden cursor-pointer group hover:shadow-lg transition-all duration-300"
-                    onClick={() => handleOpenDetails(product)}
-                  >
-                    {/* Product Image */}
-                    <div className="relative">
-                      <AspectRatio ratio={1}>
-                        <img
-                          src={product.productImage?.url || '/placeholder.svg'}
-                          alt={product.productName}
-                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </AspectRatio>
-                      {/* Stock Badge */}
-                      <div className="absolute top-2 right-2">
-                        <Badge
-                          variant={stockStatus.variant}
-                          className={stockStatus.pulse ? 'animate-pulse' : ''}
-                        >
-                          {stockStatus.label}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {/* Product Info */}
-                    <CardContent className="p-4">
-                      <p className="text-xs uppercase text-muted-foreground tracking-wide mb-1">
-                        {product.category || 'General'}
-                      </p>
-                      <h3 className="font-semibold text-foreground line-clamp-2 min-h-[2.5rem]">
-                        {product.productName}
-                      </h3>
-                    </CardContent>
-
-                    {/* Pricing Grid */}
-                    <CardFooter className="p-4 pt-0">
-                      <div className="w-full grid grid-cols-2 gap-2 text-sm">
-                        <div className="bg-muted/50 rounded-md p-2 text-center">
-                          <p className="text-muted-foreground text-xs">MRP</p>
-                          <p className="font-medium line-through text-muted-foreground">
-                            ₹{product.mrp?.toLocaleString() || 0}
-                          </p>
-                        </div>
-                        <div className="bg-primary/10 rounded-md p-2 text-center">
-                          <p className="text-muted-foreground text-xs">DP</p>
-                          <p className="font-bold text-primary">
-                            ₹{product.productDP?.toLocaleString() || 0}
-                          </p>
-                        </div>
-                        <div className="bg-muted/50 rounded-md p-2 text-center">
-                          <p className="text-muted-foreground text-xs">BV</p>
-                          <p className="font-medium text-foreground">{product.bv || 0}</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-md p-2 text-center">
-                          <p className="text-muted-foreground text-xs">PV</p>
-                          <p className="font-medium text-foreground">{product.pv || 0}</p>
-                        </div>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </motion.div>
-              );
-            })}
+            {filteredProducts.map((product, index) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                index={index}
+                onClick={() => handleOpenDetails(product)}
+              />
+            ))}
           </motion.div>
         )}
 
@@ -244,117 +168,13 @@ const ProductCatalog = () => {
         )}
       </div>
 
-      {/* Product Details Dialog */}
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="sr-only">Product Details</DialogTitle>
-            <DialogDescription className="sr-only">
-              View detailed information about this product
-            </DialogDescription>
-          </DialogHeader>
-
-          {isLoadingDetails ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : selectedProduct ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Product Image */}
-              <div className="relative">
-                <AspectRatio ratio={1}>
-                  <img
-                    src={selectedProduct.productImage?.url || '/placeholder.svg'}
-                    alt={selectedProduct.productName}
-                    className="object-cover w-full h-full rounded-lg"
-                  />
-                </AspectRatio>
-                {/* Stock Badge */}
-                <div className="absolute top-3 right-3">
-                  {(() => {
-                    const status = getStockStatus(selectedProduct);
-                    return (
-                      <Badge
-                        variant={status.variant}
-                        className={`text-sm ${status.pulse ? 'animate-pulse' : ''}`}
-                      >
-                        {status.label}
-                      </Badge>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {/* Product Info */}
-              <div className="flex flex-col">
-                <p className="text-xs uppercase text-muted-foreground tracking-wide mb-1">
-                  {selectedProduct.category || 'General'}
-                </p>
-                <h2 className="text-2xl font-bold text-foreground mb-3">
-                  {selectedProduct.productName}
-                </h2>
-
-                {selectedProduct.description && (
-                  <p className="text-muted-foreground text-sm mb-4">
-                    {selectedProduct.description}
-                  </p>
-                )}
-
-                {/* Pricing Section */}
-                <div className="bg-muted/30 rounded-lg p-4 mb-4">
-                  <h3 className="font-semibold text-foreground mb-3">Pricing Details</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-background rounded-md p-3 text-center border">
-                      <p className="text-muted-foreground text-xs mb-1">MRP</p>
-                      <p className="text-lg font-medium line-through text-muted-foreground">
-                        ₹{selectedProduct.mrp?.toLocaleString() || 0}
-                      </p>
-                    </div>
-                    <div className="bg-primary/10 rounded-md p-3 text-center border border-primary/20">
-                      <p className="text-muted-foreground text-xs mb-1">Dealer Price</p>
-                      <p className="text-xl font-bold text-primary">
-                        ₹{selectedProduct.productDP?.toLocaleString() || 0}
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-md p-3 text-center border">
-                      <p className="text-muted-foreground text-xs mb-1">Business Volume</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {selectedProduct.bv || 0} BV
-                      </p>
-                    </div>
-                    <div className="bg-background rounded-md p-3 text-center border">
-                      <p className="text-muted-foreground text-xs mb-1">Point Value</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {selectedProduct.pv || 0} PV
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* HSN Code if available */}
-                {selectedProduct.hsnCode && (
-                  <p className="text-xs text-muted-foreground mb-4">
-                    HSN Code: {selectedProduct.hsnCode}
-                  </p>
-                )}
-
-                {/* Purchase Info */}
-                <div className="mt-auto bg-accent/50 rounded-lg p-4 flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                  <div>
-                    <p className="font-medium text-foreground text-sm">
-                      Contact your nearest Franchise to purchase
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Locate a franchise partner to buy this product at Dealer Price
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </DialogContent>
-      </Dialog>
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        isOpen={isDetailsOpen}
+        onClose={handleCloseDetails}
+        product={selectedProduct}
+        isLoading={isLoadingDetails}
+      />
     </div>
   );
 };
