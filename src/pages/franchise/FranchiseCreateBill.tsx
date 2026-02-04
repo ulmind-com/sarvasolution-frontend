@@ -516,15 +516,28 @@ const FranchiseCreateBill = () => {
                       </Select>
                     </div>
 
+                    {/* PV Warning */}
+                    {cart.length > 0 && totalPV < 1 && (
+                      <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-center">
+                        <p className="text-sm text-destructive font-medium">
+                          ⚠️ Order must have at least 1 PV to proceed.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Generate Bill Button */}
                     <Button
                       type="button"
                       className="w-full"
                       size="lg"
                       onClick={handleGenerateBill}
-                      disabled={isProcessing || !verifiedMember || cart.length === 0}
+                      disabled={isProcessing || !verifiedMember || cart.length === 0 || totalPV < 1}
                     >
-                      {isProcessing ? 'Processing...' : 'Generate Bill'}
+                      {isProcessing 
+                        ? 'Processing...' 
+                        : totalPV < 1 && cart.length > 0 
+                          ? 'Minimum 1 PV Required' 
+                          : 'Generate Bill'}
                     </Button>
                   </div>
                 )}
