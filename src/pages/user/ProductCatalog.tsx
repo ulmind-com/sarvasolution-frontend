@@ -62,8 +62,11 @@ const ProductCatalog = () => {
     setIsLoadingDetails(true);
     try {
       const response = await getProductDetails(product._id);
-      if (response.success) {
-        setSelectedProduct(response.data);
+      if (response.success && response.data?.product) {
+        setSelectedProduct(response.data.product);
+      } else {
+        // Fallback to basic product data if nested structure missing
+        setSelectedProduct(product);
       }
     } catch (error) {
       console.error('Failed to fetch product details:', error);
