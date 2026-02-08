@@ -31,11 +31,13 @@ import {
   Award,
   FileText,
   Package,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { incomeTypes } from '@/data/mockData';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PageTransition } from '@/components/PageTransition';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -244,6 +246,22 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               </div>
             )}
             
+            {user?.role === 'admin' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/admin')}
+                    className="relative hover:bg-accent/50"
+                  >
+                    <ShieldCheck className="h-[1.2rem] w-[1.2rem] text-destructive" />
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Back to Admin Panel</TooltipContent>
+              </Tooltip>
+            )}
             <ThemeToggle />
             
             <DropdownMenu>

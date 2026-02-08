@@ -36,10 +36,12 @@ import {
   FileText,
   Warehouse,
   AlertTriangle,
+  LayoutDashboard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PageTransition } from '@/components/PageTransition';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -268,6 +270,21 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           <div className="flex-1" />
           
           <div className="flex items-center gap-3">
+            {user?.role === 'admin' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate('/dashboard')}
+                    className="hover:bg-accent/50"
+                  >
+                    <LayoutDashboard className="h-[1.2rem] w-[1.2rem]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Switch to User View</TooltipContent>
+              </Tooltip>
+            )}
             <ThemeToggle />
             
             <DropdownMenu>
