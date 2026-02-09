@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Package, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -209,7 +209,8 @@ const ProductList = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">Image</TableHead>
-                  <TableHead>Product Name</TableHead>
+                   <TableHead>Product Name</TableHead>
+                   <TableHead>Product ID</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead className="text-right">MRP</TableHead>
@@ -248,13 +249,32 @@ const ProductList = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={`capitalize ${getCategoryColor(getProductCategory(product))}`}
-                        >
-                          {getProductCategory(product)}
-                        </Badge>
-                      </TableCell>
+                         <div className="flex items-center gap-1">
+                           <span className="font-mono text-[10px] text-muted-foreground">
+                             {product._id}
+                           </span>
+                           <Button
+                             variant="ghost"
+                             size="icon"
+                             className="h-5 w-5"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               navigator.clipboard.writeText(product._id);
+                               toast.success('Product ID copied');
+                             }}
+                           >
+                             <Copy className="h-3 w-3" />
+                           </Button>
+                         </div>
+                       </TableCell>
+                       <TableCell>
+                         <Badge
+                           variant="secondary"
+                           className={`capitalize ${getCategoryColor(getProductCategory(product))}`}
+                         >
+                           {getProductCategory(product)}
+                         </Badge>
+                       </TableCell>
                       <TableCell className="text-right font-medium">
                         ₹{product.price.toLocaleString()}
                       </TableCell>
