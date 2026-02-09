@@ -29,7 +29,6 @@ interface InventoryItem {
     productDP: number;
     bv: number;
     pv: number;
-    gst: number;
     cgst: number;
     sgst: number;
     hsnCode?: string;
@@ -298,10 +297,6 @@ const FranchiseInventory = () => {
                         {/* Taxation */}
                         <TableCell>
                           <div className="space-y-1 text-sm">
-                            <p>
-                              <span className="text-muted-foreground">GST:</span>{' '}
-                              <span className="font-medium">{item.product?.gst ?? 0}%</span>
-                            </p>
                             <p>
                               <span className="text-muted-foreground">CGST:</span>{' '}
                               <span className="font-medium">{item.product?.cgst ?? 0}%</span>

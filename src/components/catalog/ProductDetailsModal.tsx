@@ -26,11 +26,11 @@ const ProductDetailsModal = ({
   product,
   isLoading,
 }: ProductDetailsModalProps) => {
-  // Calculate final price with GST
+  // Calculate final price with CGST + SGST
   const calculateFinalPrice = (product: Product) => {
     const basePrice = product.productDP || 0;
-    const gstRate = product.gst || 0;
-    return Math.round(basePrice * (1 + gstRate / 100));
+    const totalTaxRate = (product.cgst || 0) + (product.sgst || 0);
+    return Math.round(basePrice * (1 + totalTaxRate / 100));
   };
 
   return (
@@ -152,10 +152,10 @@ const ProductDetailsModal = ({
                   </div>
 
                   {/* Tax Info Row */}
-                  {(product.gst || product.cgst || product.sgst) && (
+                  {(product.cgst || product.sgst) && (
                     <div className="bg-background rounded-lg p-2 text-center border">
                       <p className="text-xs text-muted-foreground">
-                        GST: {product.gst || 0}% | CGST: {product.cgst || 0}% | SGST: {product.sgst || 0}%
+                        CGST: {product.cgst || 0}% | SGST: {product.sgst || 0}%
                       </p>
                     </div>
                   )}

@@ -21,7 +21,6 @@ interface Product {
   segment?: string;
   stockQuantity?: number;
   stockCount?: number;
-  gst?: number;
   cgst?: number;
   sgst?: number;
   hsnCode?: string;
