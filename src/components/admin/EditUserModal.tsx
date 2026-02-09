@@ -103,7 +103,9 @@ const EditUserModal = ({ open, onOpenChange, memberId, userData, onSuccess }: Ed
         status: data.status,
         joiningPackage: data.joiningPackage,
         panCardNumber: data.panCardNumber || undefined,
-        aadharCardNumber: data.aadharCardNumber || undefined,
+        kyc: {
+          aadhaarNumber: data.aadharCardNumber || undefined,
+        },
         bankDetails: {
           accountName: data.bankAccountName || '',
           accountNumber: data.bankAccountNumber || '',
