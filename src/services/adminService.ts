@@ -57,7 +57,15 @@ export const getFranchiseRequests = async (page = 1, limit = 10): Promise<Franch
   const response = await api.get('/api/v1/admin/requests/list', {
     params: { page, limit },
   });
-  return response.data;
+  // Handle nested response: response.data may contain { success, data: { requests, pagination } }
+  const body = response.data;
+  if (body?.data?.requests) {
+    return body.data;
+  }
+  if (body?.requests) {
+    return body;
+  }
+  return { requests: [], pagination: { currentPage: 1, totalPages: 1, totalRequests: 0, limit } };
 };
 
 /**
