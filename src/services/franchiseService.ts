@@ -96,4 +96,18 @@ export const createStockRequest = async (items: { productId: string; requestedQu
   return response.data;
 };
 
+/**
+ * Get Franchise Sales History
+ * API: GET /api/v1/franchise/sale/history
+ */
+export const getFranchiseSalesHistory = async (page = 1, limit = 20) => {
+  const response = await franchiseApi.get('/api/v1/franchise/sale/history', {
+    params: { page, limit, sortBy: 'saleDate', sortOrder: 'desc' },
+  });
+  const body = response.data;
+  if (body?.data?.sales) return body.data;
+  if (body?.sales) return body;
+  return { sales: [], pagination: { currentPage: 1, totalPages: 1, hasNextPage: false, hasPrevPage: false } };
+};
+
 export default franchiseApi;

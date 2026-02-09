@@ -54,6 +54,7 @@ import FranchiseDashboard from "./pages/franchise/FranchiseDashboard";
 import FranchiseCreateBill from "./pages/franchise/FranchiseCreateBill";
 import FranchiseInventory from "./pages/franchise/FranchiseInventory";
 import FranchiseRequestStock from "./pages/franchise/FranchiseRequestStock";
+import FranchiseOrderHistory from "./pages/franchise/FranchiseOrderHistory";
 
 const queryClient = new QueryClient();
 
@@ -271,6 +272,7 @@ const AppRoutes = () => {
       <Route path="/franchise/inventory" element={<FranchiseInventory />} />
       <Route path="/franchise/sale/create" element={<FranchiseCreateBill />} />
       <Route path="/franchise/request-stock" element={<FranchiseRequestStock />} />
+      <Route path="/franchise/order-history" element={<FranchiseOrderHistory />} />
       
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
