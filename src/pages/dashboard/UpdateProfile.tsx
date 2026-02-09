@@ -35,6 +35,7 @@ const UpdateProfile = () => {
     state: '',
     pinCode: '',
     // Banking
+    accountName: '',
     accountNumber: '',
     confirmAccountNumber: '',
     ifscCode: '',
@@ -94,6 +95,7 @@ const UpdateProfile = () => {
     if (bankDetails) {
       setFormData(prev => ({
         ...prev,
+        accountName: bankDetails.accountHolderName || '',
         accountNumber: bankDetails.accountNumber || '',
         confirmAccountNumber: bankDetails.accountNumber || '',
         ifscCode: bankDetails.ifscCode || '',
@@ -180,6 +182,7 @@ const UpdateProfile = () => {
     // Only send bank details if not already locked
     if (!isBankLocked) {
       const bankObj = {
+        accountName: formData.accountName,
         accountNumber: formData.accountNumber,
         ifscCode: formData.ifscCode,
         bankName: formData.bankName,
@@ -492,6 +495,22 @@ const UpdateProfile = () => {
                 </Alert>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Account Holder Name</Label>
+                  {isProfileLoading ? (
+                    <Skeleton className="h-10 w-full" />
+                  ) : (
+                    <Input 
+                      name="accountName"
+                      type="text" 
+                      placeholder="Enter account holder name"
+                      value={formData.accountName}
+                      onChange={handleInputChange}
+                      disabled={isBankLocked}
+                      className={isBankLocked ? 'bg-muted' : ''}
+                    />
+                  )}
+                </div>
                 <div className="space-y-2">
                   <Label>Account Number</Label>
                   {isProfileLoading ? (
