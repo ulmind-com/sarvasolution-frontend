@@ -16,7 +16,6 @@ export interface Product {
   stockQuantity: number;
   isInStock: boolean;
   hsnCode?: string;
-  gst?: number;
   cgst?: number;
   sgst?: number;
 }

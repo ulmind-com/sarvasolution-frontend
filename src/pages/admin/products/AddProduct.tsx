@@ -33,7 +33,6 @@ const [formData, setFormData] = useState({
     productDP: '',   // Dealer Price
     bv: '',          // Business Volume
     pv: '',          // Point Value
-    gst: '',
     cgst: '',
     sgst: '',
     hsnCode: '',
@@ -68,7 +67,6 @@ const [formData, setFormData] = useState({
       productDP: '',
       bv: '',
       pv: '',
-      gst: '',
       cgst: '',
       sgst: '',
       hsnCode: '',
@@ -113,7 +111,6 @@ const [formData, setFormData] = useState({
       submitData.append('pv', formData.pv);
       
       // Tax fields (optional)
-      if (formData.gst) submitData.append('gst', formData.gst);
       if (formData.cgst) submitData.append('cgst', formData.cgst);
       if (formData.sgst) submitData.append('sgst', formData.sgst);
       
@@ -319,20 +316,7 @@ const [formData, setFormData] = useState({
               {/* Taxation Section */}
               <div className="space-y-4 pt-4 border-t border-border">
                 <h4 className="font-medium text-foreground">Taxation</h4>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="gst">GST (%)</Label>
-                    <Input
-                      id="gst"
-                      name="gst"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.gst}
-                      onChange={handleInputChange}
-                      placeholder="e.g., 18"
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="cgst">CGST (%)</Label>
                     <Input
