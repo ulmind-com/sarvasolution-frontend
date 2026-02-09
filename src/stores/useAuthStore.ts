@@ -19,8 +19,8 @@ export interface BankAccount {
   accountNumber?: string;
   ifscCode?: string;
   bankName?: string;
-  branchName?: string;
-  accountHolderName?: string;
+  branch?: string;
+  accountName?: string;
 }
 
 export interface NomineeDetails {

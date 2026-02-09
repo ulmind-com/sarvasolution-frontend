@@ -40,7 +40,7 @@ const UpdateProfile = () => {
     confirmAccountNumber: '',
     ifscCode: '',
     bankName: '',
-    branchName: '',
+    branch: '',
     // Nominee
     nomineeName: '',
     nomineeRelation: '',
@@ -95,12 +95,12 @@ const UpdateProfile = () => {
     if (bankDetails) {
       setFormData(prev => ({
         ...prev,
-        accountName: bankDetails.accountHolderName || '',
+        accountName: bankDetails.accountName || '',
         accountNumber: bankDetails.accountNumber || '',
         confirmAccountNumber: bankDetails.accountNumber || '',
         ifscCode: bankDetails.ifscCode || '',
         bankName: bankDetails.bankName || '',
-        branchName: bankDetails.branchName || '',
+        branch: bankDetails.branch || '',
       }));
     }
   }, [bankDetails]);
@@ -186,7 +186,7 @@ const UpdateProfile = () => {
         accountNumber: formData.accountNumber,
         ifscCode: formData.ifscCode,
         bankName: formData.bankName,
-        branchName: formData.branchName,
+        branch: formData.branch,
       };
       formDataToSend.append('bankDetails', JSON.stringify(bankObj));
     }
@@ -581,10 +581,10 @@ const UpdateProfile = () => {
                     <Skeleton className="h-10 w-full" />
                   ) : (
                     <Input 
-                      name="branchName"
+                      name="branch"
                       type="text" 
                       placeholder="Enter branch name"
-                      value={formData.branchName}
+                      value={formData.branch}
                       onChange={handleInputChange}
                       disabled={isBankLocked}
                       className={isBankLocked ? 'bg-muted' : ''}
