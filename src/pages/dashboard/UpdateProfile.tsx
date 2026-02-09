@@ -13,8 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { CalendarIcon, Upload, Loader2, Camera } from 'lucide-react';
+import { CalendarIcon, Upload, Loader2, Camera, Lock, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import KYCDetailsTab from '@/components/profile/KYCDetailsTab';
 
 const UpdateProfile = () => {
@@ -49,6 +50,10 @@ const UpdateProfile = () => {
   const [nomineeDob, setNomineeDob] = useState<Date | undefined>();
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // One-time lock checks
+  const isBankLocked = !!(bankDetails?.accountNumber && bankDetails?.ifscCode);
+  const isPanLocked = !!user?.panCardNumber;
 
   // Fetch profile on mount
   useEffect(() => {
@@ -148,7 +153,11 @@ const UpdateProfile = () => {
     formDataToSend.append('fullName', formData.fullName);
     formDataToSend.append('email', formData.email);
     formDataToSend.append('phone', formData.phone);
-    formDataToSend.append('panCardNumber', formData.panCardNumber);
+    
+    // Only send PAN if not already locked
+    if (!isPanLocked) {
+      formDataToSend.append('panCardNumber', formData.panCardNumber);
+    }
     
     if (dob) {
       formDataToSend.append('dateOfBirth', dob.toISOString());
@@ -168,14 +177,16 @@ const UpdateProfile = () => {
     };
     formDataToSend.append('address', JSON.stringify(addressObj));
     
-    // Append bank details as JSON string
-    const bankObj = {
-      accountNumber: formData.accountNumber,
-      ifscCode: formData.ifscCode,
-      bankName: formData.bankName,
-      branchName: formData.branchName,
-    };
-    formDataToSend.append('bankDetails', JSON.stringify(bankObj));
+    // Only send bank details if not already locked
+    if (!isBankLocked) {
+      const bankObj = {
+        accountNumber: formData.accountNumber,
+        ifscCode: formData.ifscCode,
+        bankName: formData.bankName,
+        branchName: formData.branchName,
+      };
+      formDataToSend.append('bankDetails', JSON.stringify(bankObj));
+    }
     
     // Append nominee details as JSON string
     const nomineeObj = {
@@ -471,6 +482,15 @@ const UpdateProfile = () => {
             </TabsContent>
 
             <TabsContent value="banking" className="space-y-6">
+              {isBankLocked && (
+                <Alert className="border-primary/30 bg-primary/5">
+                  <Lock className="h-4 w-4" />
+                  <AlertDescription className="flex items-center gap-1">
+                    <Info className="h-3.5 w-3.5 flex-shrink-0" />
+                    Bank details are locked for security. Please contact Admin to modify.
+                  </AlertDescription>
+                </Alert>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Account Number</Label>
@@ -483,6 +503,8 @@ const UpdateProfile = () => {
                       placeholder="Enter account number"
                       value={formData.accountNumber}
                       onChange={handleInputChange}
+                      disabled={isBankLocked}
+                      className={isBankLocked ? 'bg-muted' : ''}
                     />
                   )}
                 </div>
@@ -497,6 +519,8 @@ const UpdateProfile = () => {
                       placeholder="Re-enter account number"
                       value={formData.confirmAccountNumber}
                       onChange={handleInputChange}
+                      disabled={isBankLocked}
+                      className={isBankLocked ? 'bg-muted' : ''}
                     />
                   )}
                 </div>
@@ -511,6 +535,8 @@ const UpdateProfile = () => {
                       placeholder="XXXX0XXXXXX"
                       value={formData.ifscCode}
                       onChange={handleInputChange}
+                      disabled={isBankLocked}
+                      className={isBankLocked ? 'bg-muted uppercase' : 'uppercase'}
                     />
                   )}
                 </div>
@@ -525,6 +551,8 @@ const UpdateProfile = () => {
                       placeholder="Enter bank name"
                       value={formData.bankName}
                       onChange={handleInputChange}
+                      disabled={isBankLocked}
+                      className={isBankLocked ? 'bg-muted' : ''}
                     />
                   )}
                 </div>
@@ -539,11 +567,13 @@ const UpdateProfile = () => {
                       placeholder="Enter branch name"
                       value={formData.branchName}
                       onChange={handleInputChange}
+                      disabled={isBankLocked}
+                      className={isBankLocked ? 'bg-muted' : ''}
                     />
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>PAN Card Number</Label>
+                  <Label>PAN Card Number {isPanLocked && <Lock className="inline h-3 w-3 ml-1" />}</Label>
                   {isProfileLoading ? (
                     <Skeleton className="h-10 w-full" />
                   ) : (
@@ -554,6 +584,8 @@ const UpdateProfile = () => {
                       maxLength={10}
                       value={formData.panCardNumber}
                       onChange={handleInputChange}
+                      disabled={isPanLocked}
+                      className={isPanLocked ? 'bg-muted uppercase' : 'uppercase'}
                     />
                   )}
                 </div>
