@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, ArrowLeft, Package, Search } from 'lucide-react';
+import { Store, ArrowLeft, Package, Search, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -180,6 +180,7 @@ const FranchiseInventory = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="min-w-[120px]">Product ID</TableHead>
                       <TableHead className="min-w-[200px]">Product Details</TableHead>
                       <TableHead className="text-center min-w-[100px]">My Stock</TableHead>
                       <TableHead className="min-w-[150px]">Pricing (Raw)</TableHead>
@@ -191,7 +192,28 @@ const FranchiseInventory = () => {
                   <TableBody>
                     {filteredInventory.map((item) => (
                       <TableRow key={item._id}>
-                        {/* Product Details */}
+                         {/* Product ID (from nested product object) */}
+                         <TableCell>
+                           <div className="flex items-center gap-1">
+                             <span className="font-mono text-[10px] text-muted-foreground break-all">
+                               {item.product?._id || '-'}
+                             </span>
+                             {item.product?._id && (
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-5 w-5 flex-shrink-0"
+                                 onClick={() => {
+                                   navigator.clipboard.writeText(item.product._id);
+                                   toast.success('Product ID copied');
+                                 }}
+                               >
+                                 <Copy className="h-3 w-3" />
+                               </Button>
+                             )}
+                           </div>
+                         </TableCell>
+                         {/* Product Details */}
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
