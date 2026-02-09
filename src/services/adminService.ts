@@ -68,3 +68,25 @@ export const approveFranchiseRequest = async (requestId: string) => {
   const response = await api.patch(`/api/v1/admin/requests/${requestId}/approve`);
   return response.data;
 };
+
+// ===== Product Management =====
+
+/**
+ * Update a product
+ * API: PUT /api/v1/admin/product/update/{productId}
+ */
+export const updateProduct = async (productId: string, formData: FormData) => {
+  const response = await api.put(`/api/v1/admin/product/update/${productId}`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+/**
+ * Delete a product
+ * API: DELETE /api/v1/admin/product/{productId}
+ */
+export const deleteProduct = async (productId: string) => {
+  const response = await api.delete(`/api/v1/admin/product/${productId}`);
+  return response.data;
+};

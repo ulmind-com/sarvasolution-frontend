@@ -1,13 +1,25 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight, Copy } from 'lucide-react';
+import { Plus, Package, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight, Copy, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { deleteProduct } from '@/services/adminService';
+import EditProductDialog from '@/components/admin/EditProductDialog';
 
 interface Product {
   _id: string;
@@ -16,6 +28,7 @@ interface Product {
   price: number;
   mrp?: number;
   bv?: number;
+  pv?: number;
   description: string;
   category?: string;
   segment?: string;
@@ -24,6 +37,11 @@ interface Product {
   cgst?: number;
   sgst?: number;
   hsnCode?: string;
+  productDP?: number;
+  discount?: number;
+  isFeatured?: boolean;
+  isActivationPackage?: boolean;
+  isActive?: boolean;
   productImage?: {
     url: string;
     public_id?: string;
@@ -70,6 +88,11 @@ const ProductList = () => {
     totalProducts: 0,
     limit: 20,
   });
+
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchProducts = useCallback(async (page = 1, showRefreshSpinner = false) => {
     if (showRefreshSpinner) {
@@ -138,6 +161,21 @@ const ProductList = () => {
 
   const handlePageChange = (newPage: number) => {
     fetchProducts(newPage);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteProduct(deleteTarget._id);
+      toast.success('Product deleted successfully');
+      setDeleteTarget(null);
+      fetchProducts(pagination.currentPage, true);
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to delete product');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -215,6 +253,7 @@ const ProductList = () => {
                   <TableHead className="text-right">MRP</TableHead>
                   <TableHead className="text-right">Stock</TableHead>
                   <TableHead>HSN</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,6 +334,26 @@ const ProductList = () => {
                       <TableCell className="text-muted-foreground">
                         {product.hsnCode || '-'}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => { setEditProduct(product); setEditOpen(true); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(product)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -332,6 +391,33 @@ const ProductList = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Dialog */}
+      <EditProductDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        product={editProduct}
+        onSuccess={() => fetchProducts(pagination.currentPage, true)}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteTarget ? (deleteTarget.productName || deleteTarget.name) : ''}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
