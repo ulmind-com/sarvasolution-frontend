@@ -154,15 +154,17 @@ const FranchiseDashboard = () => {
             </Card>
           </Link>
 
-          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
-            <CardHeader>
-              <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-2">
-                <FileText className="h-6 w-6 text-blue-500" />
-              </div>
-              <CardTitle>Order History</CardTitle>
-              <CardDescription>View your past orders and invoices</CardDescription>
-            </CardHeader>
-          </Card>
+          <Link to="/franchise/order-history">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardHeader>
+                <div className="h-12 w-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-2">
+                  <FileText className="h-6 w-6 text-blue-500" />
+                </div>
+                <CardTitle>Order History</CardTitle>
+                <CardDescription>View your past orders and invoices</CardDescription>
+              </CardHeader>
+            </Card>
+          </Link>
         </div>
 
         {/* Placeholder Notice */}
