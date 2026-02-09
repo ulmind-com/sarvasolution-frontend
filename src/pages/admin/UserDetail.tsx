@@ -292,6 +292,15 @@ const UserDetail = () => {
             rank: user.rank,
             status: user.status as 'active' | 'inactive' | 'blocked',
             joiningPackage: user.joiningPackage,
+            panCardNumber: user.kyc?.panCardNumber,
+            aadharCardNumber: user.kyc?.aadhaarNumber,
+            bankDetails: bankAccount ? {
+              accountName: bankAccount.accountHolderName,
+              accountNumber: bankAccount.accountNumber,
+              bankName: bankAccount.bankName,
+              ifscCode: bankAccount.ifscCode,
+              branch: bankAccount.branchName,
+            } : undefined,
           }}
           onSuccess={handleEditSuccess}
         />
