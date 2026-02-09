@@ -128,10 +128,10 @@ const DepthControlCard = ({
     const numValue = parseInt(value, 10);
     if (isNaN(numValue)) {
       setWarning(null);
-    } else if (numValue > 10) {
-      setWarning('Maximum depth is 10 levels');
     } else if (numValue < 1) {
       setWarning('Minimum depth is 1 level');
+    } else if (numValue > 50) {
+      setWarning('Large trees may take longer to load');
     } else {
       setWarning(null);
     }
@@ -142,8 +142,6 @@ const DepthControlCard = ({
     
     if (isNaN(numValue) || numValue < 1) {
       numValue = 1;
-    } else if (numValue > 10) {
-      numValue = 10;
     }
     
     setInputValue(numValue.toString());
@@ -175,7 +173,7 @@ const DepthControlCard = ({
               id="tree-depth"
               type="number"
               min={1}
-              max={10}
+              max={999}
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -201,14 +199,14 @@ const DepthControlCard = ({
           </p>
         ) : (
           <p className="text-xs text-muted-foreground mt-2">
-            Enter 1-10 levels. Higher depth shows more generations but may affect performance.
+            Enter any depth level. Higher values show more generations but may affect performance.
           </p>
         )}
         
         {/* Quick select buttons */}
         <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border">
           <span className="text-xs text-muted-foreground mr-1 self-center">Quick:</span>
-          {[2, 3, 5, 7, 10].map((d) => (
+          {[3, 5, 10, 20, 50, 100].map((d) => (
             <Button
               key={d}
               variant={depth === d ? 'secondary' : 'ghost'}
