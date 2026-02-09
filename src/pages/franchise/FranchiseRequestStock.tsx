@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { getProductMasterDetails, createStockRequest } from '@/services/franchiseService';
+import { createStockRequest } from '@/services/franchiseService';
+import api from '@/lib/api';
 import { useFranchiseAuthStore } from '@/stores/useFranchiseAuthStore';
 
 interface ProductDetails {
@@ -50,8 +51,8 @@ const FranchiseRequestStock = () => {
     setIsSearching(true);
     setVerifiedProduct(null);
     try {
-      const response = await getProductMasterDetails(productIdInput.trim());
-      const product = response.data || response.product || response;
+      const response = await api.get(`/api/v1/user/products/${productIdInput.trim()}`);
+      const product = response.data?.data?.product || response.data?.product || response.data;
       if (!product || !product._id) {
         toast.error('Product not found');
         return;
