@@ -87,4 +87,13 @@ export const getFranchiseInventory = async () => {
   return response.data;
 };
 
+/**
+ * Create a Stock Request
+ * API: POST /api/v1/franchise/requests/create
+ */
+export const createStockRequest = async (items: { productId: string; requestedQuantity: number }[]) => {
+  const response = await franchiseApi.post('/api/v1/franchise/requests/create', { items });
+  return response.data;
+};
+
 export default franchiseApi;
