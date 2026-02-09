@@ -1,77 +1,58 @@
 import { useState } from 'react';
-import { FileText, Search, Check, X, Clock, Package } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, Check, X, Clock, Package, Copy, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-
-// Mock data for UI placeholder
-const mockRequests = [
-  {
-    _id: '1',
-    requestId: 'REQ-2024-001',
-    franchiseName: 'ABC Store',
-    vendorId: 'VND001',
-    productName: 'Health Supplement A',
-    quantity: 50,
-    status: 'pending',
-    requestedAt: '2024-02-03T10:30:00Z',
-  },
-  {
-    _id: '2',
-    requestId: 'REQ-2024-002',
-    franchiseName: 'XYZ Mart',
-    vendorId: 'VND002',
-    productName: 'Personal Care Kit',
-    quantity: 30,
-    status: 'approved',
-    requestedAt: '2024-02-02T14:15:00Z',
-  },
-  {
-    _id: '3',
-    requestId: 'REQ-2024-003',
-    franchiseName: 'Quick Shop',
-    vendorId: 'VND003',
-    productName: 'Home Care Bundle',
-    quantity: 25,
-    status: 'pending',
-    requestedAt: '2024-02-03T09:45:00Z',
-  },
-  {
-    _id: '4',
-    requestId: 'REQ-2024-004',
-    franchiseName: 'Super Store',
-    vendorId: 'VND004',
-    productName: 'Agriculture Product X',
-    quantity: 15,
-    status: 'rejected',
-    requestedAt: '2024-02-01T16:20:00Z',
-  },
-];
+import {
+  getFranchiseRequests,
+  approveFranchiseRequest,
+  type FranchiseRequest,
+} from '@/services/adminService';
 
 const FranchiseRequests = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
+  const queryClient = useQueryClient();
 
-  const filteredRequests = mockRequests.filter((request) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['franchise-requests'],
+    queryFn: () => getFranchiseRequests(1, 100),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: approveFranchiseRequest,
+    onSuccess: () => {
+      toast.success('Request Approved & Processed');
+      queryClient.invalidateQueries({ queryKey: ['franchise-requests'] });
+    },
+    onError: () => {
+      toast.error('Failed to approve request');
+    },
+  });
+
+  const requests: FranchiseRequest[] = data?.requests || [];
+
+  const filteredRequests = requests.filter((request) => {
     const matchesSearch =
-      request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.franchiseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.productName.toLowerCase().includes(searchTerm.toLowerCase());
+      request.requestNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.franchise?.shopName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.franchise?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.items?.[0]?.product?.productName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = activeTab === 'all' || request.status === activeTab;
     return matchesSearch && matchesStatus;
   });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
     });
-  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,27 +67,22 @@ const FranchiseRequests = () => {
     }
   };
 
-  const handleApprove = (requestId: string) => {
-    toast.info(`Approve API not implemented for ${requestId}`);
+  const getTotalQuantity = (request: FranchiseRequest) =>
+    request.items?.reduce((acc, item) => acc + (item.requestedQuantity || 0), 0) || 0;
+
+  const getEstimatedTotal = (request: FranchiseRequest) => {
+    if (request.estimatedTotal != null) return request.estimatedTotal;
+    return request.items?.reduce((acc, item) => acc + (item.product?.productDP || 0) * (item.requestedQuantity || 0), 0) || 0;
   };
 
-  const handleReject = (requestId: string) => {
-    toast.info(`Reject API not implemented for ${requestId}`);
-  };
-
-  const pendingCount = mockRequests.filter((r) => r.status === 'pending').length;
-  const approvedCount = mockRequests.filter((r) => r.status === 'approved').length;
+  const pendingCount = requests.filter((r) => r.status === 'pending').length;
+  const approvedCount = requests.filter((r) => r.status === 'approved').length;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">Franchise Product Requests</h1>
         <p className="text-muted-foreground">Manage product requests from franchise partners</p>
-        <Badge variant="secondary" className="mt-2">
-          <FileText className="h-3 w-3 mr-1" />
-          UI Placeholder - API Not Connected
-        </Badge>
       </div>
 
       {/* Stats */}
@@ -145,7 +121,7 @@ const FranchiseRequests = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Requests</p>
-                <p className="text-2xl font-bold">{mockRequests.length}</p>
+                <p className="text-2xl font-bold">{requests.length}</p>
               </div>
             </div>
           </CardContent>
@@ -162,7 +138,6 @@ const FranchiseRequests = () => {
             <TabsTrigger value="all">All</TabsTrigger>
           </TabsList>
         </Tabs>
-
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -174,73 +149,125 @@ const FranchiseRequests = () => {
         </div>
       </div>
 
-      {/* Requests Table */}
+      {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Request ID</TableHead>
-                <TableHead>Franchise</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead className="text-center">Quantity</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRequests.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    No requests found
-                  </TableCell>
+                  <TableHead>Request ID</TableHead>
+                  <TableHead>Franchise</TableHead>
+                  <TableHead>Product(s)</TableHead>
+                  <TableHead className="text-center">Qty</TableHead>
+                  <TableHead className="text-right">Est. Total</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filteredRequests.map((request) => (
-                  <TableRow key={request._id}>
-                    <TableCell className="font-mono font-medium">{request.requestId}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{request.franchiseName}</p>
-                        <p className="text-xs text-muted-foreground">{request.vendorId}</p>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredRequests.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      No requests found
                     </TableCell>
-                    <TableCell>{request.productName}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline">{request.quantity}</Badge>
-                    </TableCell>
-                    <TableCell>{formatDate(request.requestedAt)}</TableCell>
-                    <TableCell>{getStatusBadge(request.status)}</TableCell>
-                    <TableCell className="text-right">
-                      {request.status === 'pending' && (
-                        <div className="flex items-center justify-end gap-2">
+                  </TableRow>
+                ) : (
+                  filteredRequests.map((request) => (
+                    <TableRow key={request._id}>
+                      {/* Request ID */}
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-xs font-medium">{request.requestNo}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5"
+                            onClick={() => {
+                              navigator.clipboard.writeText(request.requestNo);
+                              toast.success('Request ID copied');
+                            }}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+
+                      {/* Franchise */}
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{request.franchise?.shopName || '-'}</p>
+                          <p className="text-xs text-muted-foreground">{request.franchise?.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {request.franchise?.city} • {request.franchise?.vendorId}
+                          </p>
+                        </div>
+                      </TableCell>
+
+                      {/* Products */}
+                      <TableCell>
+                        {request.items?.length > 0 ? (
+                          <div>
+                            <p className="text-sm">{request.items[0].product?.productName || 'Unknown'}</p>
+                            {request.items.length > 1 && (
+                              <Badge variant="outline" className="mt-1 text-[10px]">
+                                + {request.items.length - 1} more
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No Products</span>
+                        )}
+                      </TableCell>
+
+                      {/* Quantity */}
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{getTotalQuantity(request)}</Badge>
+                      </TableCell>
+
+                      {/* Total */}
+                      <TableCell className="text-right font-medium">
+                        ₹{getEstimatedTotal(request).toLocaleString('en-IN')}
+                      </TableCell>
+
+                      {/* Date */}
+                      <TableCell className="text-sm">
+                        {formatDate(request.requestDate || request.createdAt)}
+                      </TableCell>
+
+                      {/* Status */}
+                      <TableCell>{getStatusBadge(request.status)}</TableCell>
+
+                      {/* Actions */}
+                      <TableCell className="text-right">
+                        {request.status === 'pending' && (
                           <Button
                             size="sm"
                             variant="outline"
                             className="h-8 text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                            onClick={() => handleApprove(request.requestId)}
+                            disabled={approveMutation.isPending}
+                            onClick={() => approveMutation.mutate(request._id)}
                           >
-                            <Check className="h-4 w-4 mr-1" />
+                            {approveMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                            ) : (
+                              <Check className="h-4 w-4 mr-1" />
+                            )}
                             Approve
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleReject(request.requestId)}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>
