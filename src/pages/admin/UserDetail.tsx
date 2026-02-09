@@ -94,11 +94,11 @@ interface UserDetailData {
 }
 
 interface BankAccount {
-  accountHolderName: string;
+  accountName: string;
   accountNumber: string;
   bankName: string;
   ifscCode: string;
-  branchName: string;
+  branch: string;
 }
 
 const UserDetail = () => {
@@ -295,11 +295,11 @@ const UserDetail = () => {
             panCardNumber: user.kyc?.panCardNumber,
             aadharCardNumber: user.kyc?.aadhaarNumber,
             bankDetails: bankAccount ? {
-              accountName: bankAccount.accountHolderName,
+              accountName: bankAccount.accountName,
               accountNumber: bankAccount.accountNumber,
               bankName: bankAccount.bankName,
               ifscCode: bankAccount.ifscCode,
-              branch: bankAccount.branchName,
+              branch: bankAccount.branch,
             } : undefined,
           }}
           onSuccess={handleEditSuccess}
@@ -766,7 +766,7 @@ const UserDetail = () => {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Account Holder Name</p>
-                    <p className="font-medium">{bankAccount.accountHolderName}</p>
+                    <p className="font-medium">{bankAccount.accountName}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Account Number</p>
@@ -782,7 +782,7 @@ const UserDetail = () => {
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Branch Name</p>
-                    <p className="font-medium">{bankAccount.branchName}</p>
+                    <p className="font-medium">{bankAccount.branch}</p>
                   </div>
                 </div>
               ) : (
