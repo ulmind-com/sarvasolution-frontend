@@ -56,3 +56,24 @@ export const getProductDetails = async (productId: string): Promise<ProductDetai
   const response = await api.get(`/api/v1/user/products/${productId}`);
   return response.data;
 };
+
+// Fetch wallet summary
+export const getWalletSummary = async () => {
+  const response = await api.get('/api/v1/user/wallet');
+  const body = response.data;
+  // Handle nested response structures
+  if (body?.data?.wallet) return body.data.wallet;
+  if (body?.wallet) return body.wallet;
+  return body;
+};
+
+// Fetch payout history
+export const getPayoutHistory = async () => {
+  const response = await api.get('/api/v1/user/payouts');
+  const body = response.data;
+  if (body?.data && Array.isArray(body.data)) return body.data;
+  if (Array.isArray(body)) return body;
+  if (body?.data?.payouts) return body.data.payouts;
+  if (body?.payouts) return body.payouts;
+  return [];
+};
