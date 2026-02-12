@@ -23,6 +23,7 @@ export interface TreeNodeData {
   sponsorId?: string;
   directSponsors?: number;
   isActive?: boolean;
+  isStar?: boolean;
   status?: string;
   // Complete Team Stats (Total Business)
   leftCompleteActive?: number;
