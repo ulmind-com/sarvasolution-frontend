@@ -25,6 +25,7 @@ import UpdateProfile from "./pages/dashboard/UpdateProfile";
 import ChangePassword from "./pages/dashboard/ChangePassword";
 import CappingReport from "./pages/dashboard/CappingReport";
 import IncomeReport from "./pages/dashboard/IncomeReport";
+import FastTrackBonus from "./pages/dashboard/FastTrackBonus";
 import WelcomeLetter from "./pages/dashboard/WelcomeLetter";
 import ProductCatalog from "./pages/user/ProductCatalog";
 
@@ -143,6 +144,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <CappingReport />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/incomes/fast-track" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <FastTrackBonus />
           </DashboardLayout>
         </ProtectedRoute>
       } />

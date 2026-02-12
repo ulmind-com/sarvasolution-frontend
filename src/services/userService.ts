@@ -86,6 +86,12 @@ export const getDirectTeam = async (page = 1, limit = 10, leg?: 'all' | 'left' |
   return response.data;
 };
 
+// Fetch fast track bonus status
+export const getFastTrackStatus = async () => {
+  const response = await api.get('/api/v1/user/fast-track-status');
+  return response.data;
+};
+
 // Fetch complete downline team (leg is required)
 export const getDownlineTeam = async (leg: 'left' | 'right', page = 1, limit = 10) => {
   const response = await api.get('/api/v1/user/team/complete', {
