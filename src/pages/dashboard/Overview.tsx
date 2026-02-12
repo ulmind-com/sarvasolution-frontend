@@ -79,7 +79,7 @@ const Overview = () => {
   }, [memberId]);
 
   const copyReferralLink = () => {
-    const link = `https://sarvasolutionvision.com/join/${memberId}`;
+    const link = `${window.location.origin}/join/${memberId}`;
     navigator.clipboard.writeText(link);
     toast.success('Referral link copied to clipboard!');
   };
