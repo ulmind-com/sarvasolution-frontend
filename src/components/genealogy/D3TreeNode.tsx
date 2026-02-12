@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserPlus, ChevronDown, Users, CheckCircle2, XCircle, TrendingUp, Star } from 'lucide-react';
+import { UserPlus, ChevronDown, Users, CheckCircle2, XCircle, TrendingUp, Star as StarIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ export interface D3TreeNodeDatum {
     directSponsors?: number;
     isEmpty?: boolean;
     isActive?: boolean;
+    isStar?: boolean;
     status?: string;
     // Complete Team Stats (replacing Direct Business)
     leftCompleteActive?: number;
@@ -80,6 +81,7 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       directSponsors: node.directSponsors,
       isEmpty: false,
       isActive: node.isActive ?? (node.status?.toLowerCase() === 'active'),
+      isStar: (node as any).isStar ?? false,
       status: node.status,
       // Complete Team Stats
       leftCompleteActive: node.leftCompleteActive ?? node.leftDirectActive ?? 0,
@@ -100,55 +102,87 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
   };
 };
 
-const getRankStyles = (rank: string): { ring: string; badge: string; glow: string } => {
+const getRankStyles = (rank: string): { ring: string; badge: string; glow: string; border: string } => {
   const rankLower = rank?.toLowerCase() || '';
   
-  if (rankLower.includes('crown')) {
+  if (rankLower.includes('crown') || rankLower.includes('ambassador') || rankLower.includes('legend')) {
     return { 
-      ring: 'ring-4 ring-chart-4', 
-      badge: 'bg-chart-4 text-foreground',
-      glow: 'shadow-[0_0_20px_rgba(var(--chart-4),0.4)]'
+      ring: 'ring-4 ring-purple-500 ring-offset-2 ring-offset-background',
+      badge: 'bg-purple-500 text-white',
+      glow: 'shadow-[0_0_25px_rgba(168,85,247,0.5)]',
+      border: 'border-purple-500',
+    };
+  }
+  if (rankLower.includes('sapphire')) {
+    return { 
+      ring: 'ring-4 ring-blue-700 ring-offset-2 ring-offset-background',
+      badge: 'bg-blue-700 text-white',
+      glow: 'shadow-[0_0_25px_rgba(29,78,216,0.5)]',
+      border: 'border-blue-700',
+    };
+  }
+  if (rankLower.includes('emerald')) {
+    return { 
+      ring: 'ring-4 ring-emerald-600 ring-offset-2 ring-offset-background',
+      badge: 'bg-emerald-600 text-white',
+      glow: 'shadow-[0_0_25px_rgba(5,150,105,0.5)]',
+      border: 'border-emerald-600',
+    };
+  }
+  if (rankLower.includes('ruby')) {
+    return { 
+      ring: 'ring-4 ring-red-600 ring-offset-2 ring-offset-background',
+      badge: 'bg-red-600 text-white',
+      glow: 'shadow-[0_0_25px_rgba(220,38,38,0.5)]',
+      border: 'border-red-600',
     };
   }
   if (rankLower.includes('diamond')) {
     return { 
-      ring: 'ring-4 ring-chart-1', 
-      badge: 'bg-chart-1 text-primary-foreground',
-      glow: 'shadow-[0_0_20px_rgba(var(--chart-1),0.4)]'
+      ring: 'ring-4 ring-sky-500 ring-offset-2 ring-offset-background', 
+      badge: 'bg-sky-500 text-white',
+      glow: 'shadow-[0_0_25px_rgba(14,165,233,0.5)]',
+      border: 'border-sky-500',
     };
   }
   if (rankLower.includes('platinum')) {
     return { 
-      ring: 'ring-4 ring-chart-3', 
-      badge: 'bg-chart-3 text-primary-foreground',
-      glow: 'shadow-[0_0_15px_rgba(var(--chart-3),0.3)]'
+      ring: 'ring-4 ring-cyan-200 ring-offset-2 ring-offset-background', 
+      badge: 'bg-cyan-200 text-cyan-900',
+      glow: 'shadow-[0_0_20px_rgba(165,243,252,0.5)]',
+      border: 'border-cyan-200',
     };
   }
   if (rankLower.includes('gold')) {
     return { 
-      ring: 'ring-4 ring-chart-2', 
-      badge: 'bg-chart-2 text-foreground',
-      glow: 'shadow-[0_0_15px_rgba(var(--chart-2),0.3)]'
+      ring: 'ring-4 ring-yellow-500 ring-offset-2 ring-offset-background', 
+      badge: 'bg-yellow-500 text-yellow-950',
+      glow: 'shadow-[0_0_20px_rgba(234,179,8,0.5)]',
+      border: 'border-yellow-500',
     };
   }
   if (rankLower.includes('silver')) {
     return { 
-      ring: 'ring-3 ring-muted-foreground/50', 
-      badge: 'bg-muted text-muted-foreground',
-      glow: ''
+      ring: 'ring-3 ring-slate-300', 
+      badge: 'bg-slate-300 text-slate-800',
+      glow: 'shadow-[0_0_15px_rgba(203,213,225,0.4)]',
+      border: 'border-slate-300',
     };
   }
   if (rankLower.includes('bronze')) {
     return { 
-      ring: 'ring-3 ring-secondary', 
-      badge: 'bg-secondary text-secondary-foreground',
-      glow: ''
+      ring: 'ring-3 ring-amber-700', 
+      badge: 'bg-amber-700 text-white',
+      glow: 'shadow-[0_0_15px_rgba(180,83,9,0.4)]',
+      border: 'border-amber-700',
     };
   }
+  // Associate / default
   return { 
-    ring: 'ring-3 ring-primary', 
-    badge: 'bg-primary text-primary-foreground',
-    glow: 'shadow-[0_0_12px_rgba(var(--primary),0.25)]'
+    ring: 'ring-3 ring-emerald-500', 
+    badge: 'bg-emerald-500 text-white',
+    glow: 'shadow-[0_0_12px_rgba(16,185,129,0.2)]',
+    border: 'border-emerald-500',
   };
 };
 
@@ -181,6 +215,7 @@ const HoverTooltip = ({
     .toUpperCase();
   const avatarUrl = data.profileImage || data.avatar;
   const isActive = data.isActive ?? (data.status?.toLowerCase() === 'active');
+  const isStar = data.isStar ?? false;
 
   // Format joining date
   const formattedJoiningDate = data.joiningDate 
@@ -216,6 +251,14 @@ const HoverTooltip = ({
           >
             {isActive ? 'Active' : 'Inactive'}
           </Badge>
+          {isStar && (
+            <Badge 
+              className="absolute top-2 right-16 text-[9px] px-1.5 py-0.5 bg-yellow-400/20 text-yellow-600 border-yellow-500/30"
+              variant="outline"
+            >
+              <StarIcon className="w-3 h-3 mr-0.5 fill-yellow-500 text-yellow-600" /> Star
+            </Badge>
+          )}
 
           <div className="flex items-center gap-3">
             <Avatar className={cn('w-12 h-12', ring)}>
@@ -289,7 +332,7 @@ const HoverTooltip = ({
               
               {/* Row 3: Stars */}
               <div className="flex items-center justify-center gap-1.5 py-1 bg-chart-2/10 rounded">
-                <Star className="h-3 w-3 text-chart-2 fill-chart-2" />
+                <StarIcon className="h-3 w-3 text-chart-2 fill-chart-2" />
                 <span className="text-[10px] font-bold text-chart-2">{data.leftLegStars ?? 0} Stars</span>
               </div>
             </div>
@@ -324,7 +367,7 @@ const HoverTooltip = ({
               
               {/* Row 3: Stars */}
               <div className="flex items-center justify-center gap-1.5 py-1 bg-chart-2/10 rounded">
-                <Star className="h-3 w-3 text-chart-2 fill-chart-2" />
+                <StarIcon className="h-3 w-3 text-chart-2 fill-chart-2" />
                 <span className="text-[10px] font-bold text-chart-2">{data.rightLegStars ?? 0} Stars</span>
               </div>
             </div>
@@ -355,7 +398,7 @@ interface ActiveD3NodeProps {
 
 export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlighted }: ActiveD3NodeProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const { badge } = getRankStyles(data.rank);
+  const rankStyle = getRankStyles(data.rank);
   const initials = data.fullName
     .split(' ')
     .map((n) => n[0])
@@ -367,18 +410,19 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
   
   // Determine active/inactive status
   const isActive = data.isActive ?? (data.status?.toLowerCase() === 'active');
+  const isStar = data.isStar ?? false;
 
-  // Status-based styles - INTENSE Neon glow for instant visual assessment
-  const statusStyles = isActive
+  // Priority: Inactive = red override, Active = rank-based styling
+  const avatarStyles = !isActive
     ? {
-        border: 'border-chart-2',
-        ring: 'ring-2 ring-chart-2/70',
-        shadow: 'shadow-[0_0_25px_rgba(34,197,94,0.9)]', // Strong green glow
-      }
-    : {
         border: 'border-destructive',
         ring: 'ring-2 ring-destructive/70',
-        shadow: 'shadow-[0_0_25px_rgba(239,68,68,0.9)]', // Strong red glow
+        shadow: 'shadow-[0_0_25px_rgba(239,68,68,0.9)]',
+      }
+    : {
+        border: rankStyle.border,
+        ring: rankStyle.ring,
+        shadow: rankStyle.glow,
       };
 
   return (
@@ -408,7 +452,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           />
         )}
         
-        {/* Avatar with status-based STRONG glow effect */}
+        {/* Avatar with rank-based styling */}
         <div className="relative transition-shadow duration-300">
           <Avatar
             className={cn(
@@ -416,9 +460,9 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
               isHighlighted 
                 ? 'border-yellow-400 ring-4 ring-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.9)]' 
                 : cn(
-                    statusStyles.border,
-                    statusStyles.ring,
-                    statusStyles.shadow,
+                    avatarStyles.border,
+                    avatarStyles.ring,
+                    avatarStyles.shadow,
                     'group-hover:scale-105'
                   )
             )}
@@ -428,6 +472,15 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
               {initials}
             </AvatarFallback>
           </Avatar>
+
+          {/* Star Badge - Golden star on top-right of avatar */}
+          {isStar && (
+            <div className="absolute -top-1 -right-1 z-10 animate-pulse">
+              <div className="w-6 h-6 rounded-full bg-yellow-400 flex items-center justify-center shadow-[0_0_12px_rgba(250,204,21,0.8)] border-2 border-yellow-500">
+                <StarIcon className="w-3.5 h-3.5 text-yellow-700 fill-yellow-600" />
+              </div>
+            </div>
+          )}
           
           {/* Drill-down indicator */}
           {hasChildren && (
@@ -437,7 +490,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           )}
         </div>
 
-        {/* Name Label - FIXED: Dark text on light background for readability */}
+        {/* Name Label */}
         <div className="mt-2.5 text-center">
           <div className="bg-background/95 backdrop-blur-sm border border-border rounded-full px-3 py-1 shadow-md">
             <p className="text-[12px] font-extrabold text-foreground tracking-wide truncate max-w-[90px]">
@@ -453,7 +506,7 @@ export const ActiveD3Node = ({ data, name, onNodeClick, hasChildren, isHighlight
           {/* Rank Badge */}
           <Badge
             variant="outline"
-            className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', badge)}
+            className={cn('text-[8px] px-1.5 py-0 mt-0.5 border-0 shadow-sm', rankStyle.badge)}
           >
             {data.rank}
           </Badge>
