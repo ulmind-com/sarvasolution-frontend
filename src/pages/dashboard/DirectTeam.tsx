@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +45,7 @@ const rankColors: Record<string, string> = {
 };
 
 const DirectTeam = () => {
-  const [activeLeg, setActiveLeg] = useState<'all' | 'left' | 'right'>('all');
+  const activeLeg = 'all';
   const [data, setData] = useState<TeamMember[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,8 +86,7 @@ const DirectTeam = () => {
   // Export to PDF
   const handleExportPDF = () => {
     const doc = new jsPDF();
-    const legLabel = activeLeg === 'all' ? 'All' : activeLeg.toUpperCase();
-    doc.text(`Direct Team Report - ${legLabel} Leg`, 14, 15);
+    doc.text('Direct Team Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, 22);
 
@@ -131,18 +130,12 @@ const DirectTeam = () => {
   };
 
   useEffect(() => {
-    setCurrentPage(1);
-    setSearchQuery('');
-    fetchDirectTeam(1, activeLeg);
-  }, [activeLeg]);
+    fetchDirectTeam(1, 'all');
+  }, []);
 
   useEffect(() => {
-    fetchDirectTeam(currentPage, activeLeg);
+    if (currentPage > 1) fetchDirectTeam(currentPage, 'all');
   }, [currentPage]);
-
-  const handleTabChange = (value: string) => {
-    setActiveLeg(value as 'all' | 'left' | 'right');
-  };
 
   const handlePrevious = () => {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
@@ -262,14 +255,6 @@ const DirectTeam = () => {
       <Card className="border-border/50">
         <CardHeader className="pb-3 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <Tabs value={activeLeg} onValueChange={handleTabChange} className="w-full sm:w-auto">
-              <TabsList className="grid w-full sm:w-auto grid-cols-3 bg-muted">
-                <TabsTrigger value="all" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">All</TabsTrigger>
-                <TabsTrigger value="left" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Left Leg</TabsTrigger>
-                <TabsTrigger value="right" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Right Leg</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
