@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -98,6 +98,7 @@ const menuItems: MenuItem[] = [
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [liveWalletBalance, setLiveWalletBalance] = useState<number | null>(null);
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -106,7 +107,23 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const userName = user?.fullName || 'User';
   const userEmail = user?.email || '';
   const userRank = user?.rank || 'Starter';
-  const walletBalance = user?.wallet?.availableBalance || 0;
+  const walletBalance = liveWalletBalance ?? user?.wallet?.availableBalance ?? 0;
+  const profileImage = user?.profilePicture?.url;
+
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const { getWalletSummary } = await import('@/services/userService');
+        const wallet = await getWalletSummary();
+        if (wallet?.availableBalance != null) {
+          setLiveWalletBalance(wallet.availableBalance);
+        }
+      } catch (err) {
+        console.error('Navbar wallet fetch error:', err);
+      }
+    };
+    if (user) fetchWallet();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -224,6 +241,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="p-4 border-t border-border/50">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10 ring-2 ring-primary/20">
+                <AvatarImage src={profileImage} alt={userName} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
                   {userName.charAt(0)}
                 </AvatarFallback>
@@ -281,11 +299,12 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all duration-200">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {userName.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={profileImage} alt={userName} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {userName.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 glass" align="end">
