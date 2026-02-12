@@ -82,6 +82,7 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/join/:referralId" element={<Register />} />
       <Route path="/franchise/login" element={<FranchiseLogin />} />
       
       {/* Dashboard Routes */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,16 +11,18 @@ import { toast } from 'sonner';
 import MemberIdModal from '@/components/MemberIdModal';
 
 const Register = () => {
+  const { referralId } = useParams<{ referralId: string }>();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     phone: '',
-    sponsorId: '',
+    sponsorId: referralId?.toUpperCase() || '',
     panCardNumber: '',
     preferredPosition: '' as 'left' | 'right' | '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const isReferral = !!referralId;
   
   const { register, isLoading, error, clearError } = useAuthStore();
 
@@ -156,7 +158,8 @@ const Register = () => {
                     onChange={handleChange}
                     required
                     className="bg-card border-input"
-                    disabled={isLoading}
+                    disabled={isLoading || isReferral}
+                    readOnly={isReferral}
                   />
                 </div>
                 
