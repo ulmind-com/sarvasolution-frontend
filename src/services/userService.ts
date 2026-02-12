@@ -79,9 +79,9 @@ export const getPayoutHistory = async () => {
 };
 
 // Fetch direct team by leg
-export const getDirectTeam = async (page = 1, limit = 10, leg?: 'left' | 'right') => {
+export const getDirectTeam = async (page = 1, limit = 10, leg?: 'all' | 'left' | 'right') => {
   const params: Record<string, any> = { page, limit };
-  if (leg) params.leg = leg;
+  if (leg && leg !== 'all') params.leg = leg;
   const response = await api.get('/api/v1/user/direct-team', { params });
   return response.data;
 };
