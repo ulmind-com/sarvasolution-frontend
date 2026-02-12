@@ -99,31 +99,33 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [liveWalletBalance, setLiveWalletBalance] = useState<number | null>(null);
-  const { user, logout } = useAuthStore();
+  const { user, logout, fetchProfile } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
 
   // Use real user data
   const userName = user?.fullName || 'User';
   const userEmail = user?.email || '';
-  const userRank = user?.rank || 'Starter';
+  const userRank = user?.currentRank || user?.rank || 'Member';
   const walletBalance = liveWalletBalance ?? user?.wallet?.availableBalance ?? 0;
   const profileImage = user?.profilePicture?.url;
 
   useEffect(() => {
-    const fetchWallet = async () => {
+    const init = async () => {
       try {
+        // Fetch fresh profile to get currentRank and other fields
+        await fetchProfile();
         const { getWalletSummary } = await import('@/services/userService');
         const wallet = await getWalletSummary();
         if (wallet?.availableBalance != null) {
           setLiveWalletBalance(wallet.availableBalance);
         }
       } catch (err) {
-        console.error('Navbar wallet fetch error:', err);
+        console.error('Dashboard init error:', err);
       }
     };
-    if (user) fetchWallet();
-  }, [user]);
+    if (user) init();
+  }, []);
 
   const handleLogout = () => {
     logout();
