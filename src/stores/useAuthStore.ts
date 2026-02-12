@@ -52,6 +52,8 @@ export interface ApiUser {
   role: 'user' | 'admin';
   leftPV: number;
   rightPV: number;
+  leftTeamCount?: number;
+  rightTeamCount?: number;
   wallet: UserWallet;
   isActive: boolean;
   createdAt: string;
