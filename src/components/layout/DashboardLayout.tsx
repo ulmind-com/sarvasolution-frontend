@@ -34,7 +34,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { incomeTypes } from '@/data/mockData';
+
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PageTransition } from '@/components/PageTransition';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -68,7 +68,21 @@ const menuItems: MenuItem[] = [
   { 
     label: 'My Incomes', 
     icon: IndianRupee,
-    children: incomeTypes.map(t => ({ path: `/dashboard/incomes/${t.slug}`, label: t.name }))
+    children: [
+      { path: '/dashboard/incomes/fast-track', label: 'Fast Track Bonus' },
+      { path: '/dashboard/incomes/star-matching', label: 'Star Matching Bonus' },
+      { path: '/dashboard/incomes/rank', label: 'Rank Bonus' },
+      { path: '/dashboard/incomes/self-repurchase', label: 'Self Repurchase Bonus' },
+      { path: '/dashboard/incomes/beginner-matching', label: 'Beginner Matching Bonus' },
+      { path: '/dashboard/incomes/start-up', label: 'Start up Bonus' },
+      { path: '/dashboard/incomes/leadership', label: 'Leadership Bonus' },
+      { path: '/dashboard/incomes/tour-fund', label: 'Tour Fund' },
+      { path: '/dashboard/incomes/health-education', label: 'Health & Education Bonus' },
+      { path: '/dashboard/incomes/bike-car-fund', label: 'Bike & Car Fund' },
+      { path: '/dashboard/incomes/house-fund', label: 'House Fund' },
+      { path: '/dashboard/incomes/royalty-fund', label: 'Royalty Fund' },
+      { path: '/dashboard/incomes/super-performance', label: 'Super Performance Bonus' },
+    ]
   },
   { path: '/dashboard/capping', label: 'Capping Summary', icon: FileText },
   { 
