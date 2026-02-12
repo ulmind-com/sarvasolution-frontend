@@ -11,7 +11,7 @@ import { UsersRound, ChevronLeft, ChevronRight, UserX, Search, FileSpreadsheet, 
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import api from '@/lib/api';
+import { getDownlineTeam } from '@/services/userService';
 import { cn } from '@/lib/utils';
 
 interface TeamMember {
@@ -67,13 +67,16 @@ const CompleteTeam = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get<CompleteTeamResponse>('/api/v1/user/team/complete', {
-        params: { page, limit: 10, leg }
-      });
+      const response = await getDownlineTeam(leg, page, 10);
       
-      if (response.data.success) {
-        setData(response.data.data.members || []);
-        setPagination(response.data.data.pagination);
+      if (response.success) {
+        // Map 'rank' field to 'currentRank' for consistent UI rendering
+        const members = (response.data?.members || []).map((m: any) => ({
+          ...m,
+          currentRank: m.rank || m.currentRank || 'Starter',
+        }));
+        setData(members);
+        setPagination(response.data?.pagination || null);
       }
     } catch (err: any) {
       console.error('Failed to fetch complete team:', err);
