@@ -105,3 +105,9 @@ export const getDownlineTeam = async (leg: 'left' | 'right', page = 1, limit = 1
   });
   return response.data;
 };
+
+// Fetch user tree data (team counts)
+export const getUserTree = async (memberId: string) => {
+  const response = await api.get(`/api/v1/user/tree/${memberId}`);
+  return response.data;
+};

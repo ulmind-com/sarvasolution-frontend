@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { getWalletSummary, getUserTree } from '@/services/userService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   TrendingUp, 
   Users, 
@@ -14,15 +17,47 @@ import { toast } from 'sonner';
 
 const Overview = () => {
   const { user } = useAuthStore();
-  
-  // Use real data from the authenticated user
-  const walletBalance = user?.wallet?.availableBalance || 0;
-  const totalEarnings = user?.wallet?.totalEarnings || 0;
-  const leftTeamCount = user?.leftTeamCount || 0;
-  const rightTeamCount = user?.rightTeamCount || 0;
+  const [isLoading, setIsLoading] = useState(true);
+  const [walletData, setWalletData] = useState({ availableBalance: 0, totalEarnings: 0 });
+  const [teamData, setTeamData] = useState({ leftTeamCount: 0, rightTeamCount: 0 });
+
   const rank = user?.rank || 'Starter';
   const userName = user?.fullName?.split(' ')[0] || 'User';
   const memberId = user?.memberId || '';
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        const [walletRes, treeRes] = await Promise.allSettled([
+          getWalletSummary(),
+          memberId ? getUserTree(memberId) : Promise.resolve(null),
+        ]);
+
+        if (walletRes.status === 'fulfilled' && walletRes.value) {
+          const w = walletRes.value;
+          setWalletData({
+            availableBalance: w.availableBalance || 0,
+            totalEarnings: w.totalEarnings || 0,
+          });
+        }
+
+        if (treeRes.status === 'fulfilled' && treeRes.value) {
+          const t = treeRes.value?.data || treeRes.value;
+          setTeamData({
+            leftTeamCount: t.leftTeamCount || 0,
+            rightTeamCount: t.rightTeamCount || 0,
+          });
+        }
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [memberId]);
 
   const copyReferralLink = () => {
     const link = `https://sarvasolutionvision.com/join/${memberId}`;
@@ -39,14 +74,14 @@ const Overview = () => {
   }> = [
     {
       title: 'Total Earnings',
-      value: `₹${totalEarnings.toLocaleString()}`,
+      value: `₹${walletData.totalEarnings.toLocaleString()}`,
       change: 'Lifetime',
       changeType: 'neutral',
       icon: TrendingUp
     },
     {
       title: 'Wallet Balance',
-      value: `₹${walletBalance.toLocaleString()}`,
+      value: `₹${walletData.availableBalance.toLocaleString()}`,
       change: 'Available',
       changeType: 'positive',
       icon: Wallet
@@ -97,22 +132,28 @@ const Overview = () => {
               <stat.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-              <div className="flex items-center gap-1 mt-1">
-                {stat.changeType === 'positive' && (
-                  <ArrowUpRight className="h-3 w-3 text-primary" />
-                )}
-                {stat.changeType === 'negative' && (
-                  <ArrowDownRight className="h-3 w-3 text-destructive" />
-                )}
-                <span className={`text-xs ${
-                  stat.changeType === 'positive' ? 'text-primary' : 
-                  stat.changeType === 'negative' ? 'text-destructive' : 
-                  'text-muted-foreground'
-                }`}>
-                  {stat.change}
-                </span>
-              </div>
+              {isLoading ? (
+                <Skeleton className="h-8 w-24" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                  <div className="flex items-center gap-1 mt-1">
+                    {stat.changeType === 'positive' && (
+                      <ArrowUpRight className="h-3 w-3 text-primary" />
+                    )}
+                    {stat.changeType === 'negative' && (
+                      <ArrowDownRight className="h-3 w-3 text-destructive" />
+                    )}
+                    <span className={`text-xs ${
+                      stat.changeType === 'positive' ? 'text-primary' : 
+                      stat.changeType === 'negative' ? 'text-destructive' : 
+                      'text-muted-foreground'
+                    }`}>
+                      {stat.change}
+                    </span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -128,16 +169,24 @@ const Overview = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-accent rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Left Team</p>
-                <p className="text-3xl font-bold text-accent-foreground">
-                  {leftTeamCount.toLocaleString()}
-                </p>
+                {isLoading ? (
+                  <Skeleton className="h-9 w-16 mx-auto" />
+                ) : (
+                  <p className="text-3xl font-bold text-accent-foreground">
+                    {teamData.leftTeamCount.toLocaleString()}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">Members</p>
               </div>
               <div className="text-center p-4 bg-accent rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Right Team</p>
-                <p className="text-3xl font-bold text-accent-foreground">
-                  {rightTeamCount.toLocaleString()}
-                </p>
+                {isLoading ? (
+                  <Skeleton className="h-9 w-16 mx-auto" />
+                ) : (
+                  <p className="text-3xl font-bold text-accent-foreground">
+                    {teamData.rightTeamCount.toLocaleString()}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">Members</p>
               </div>
             </div>
