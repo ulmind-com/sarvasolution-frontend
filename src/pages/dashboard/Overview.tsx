@@ -21,9 +21,28 @@ const Overview = () => {
   const [walletData, setWalletData] = useState({ availableBalance: 0, totalEarnings: 0 });
   const [teamData, setTeamData] = useState({ leftTeamCount: 0, rightTeamCount: 0 });
 
-  const rank = user?.rank || 'Starter';
+  const rank = user?.currentRank || user?.rank || 'Member';
   const userName = user?.fullName?.split(' ')[0] || 'User';
   const memberId = user?.memberId || '';
+
+  const getRankColor = (r: string): string => {
+    const rl = r.toLowerCase();
+    if (rl.includes('ssvpl')) return 'text-purple-500';
+    if (rl === 'legend') return 'text-amber-500';
+    if (rl === 'royal') return 'text-yellow-600';
+    if (rl === 'elite') return 'text-red-500';
+    if (rl === 'crown') return 'text-purple-600';
+    if (rl === 'emerald') return 'text-emerald-600';
+    if (rl === 'sapphire') return 'text-blue-700';
+    if (rl === 'ruby') return 'text-red-600';
+    if (rl === 'diamond') return 'text-sky-500';
+    if (rl === 'platinum') return 'text-cyan-400';
+    if (rl === 'gold') return 'text-yellow-500';
+    if (rl === 'silver') return 'text-slate-400';
+    if (rl === 'bronze') return 'text-amber-700';
+    if (rl === 'star') return 'text-indigo-500';
+    return 'text-emerald-500'; // Associate / default
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -136,7 +155,9 @@ const Overview = () => {
                 <Skeleton className="h-8 w-24" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                  <div className={`text-2xl font-bold ${stat.title === 'Current Rank' ? getRankColor(rank) : 'text-foreground'}`}>
+                    {stat.value}
+                  </div>
                   <div className="flex items-center gap-1 mt-1">
                     {stat.changeType === 'positive' && (
                       <ArrowUpRight className="h-3 w-3 text-primary" />
