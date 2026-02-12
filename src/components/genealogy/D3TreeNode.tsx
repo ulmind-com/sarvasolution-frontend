@@ -105,12 +105,49 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
 const getRankStyles = (rank: string): { ring: string; badge: string; glow: string; border: string } => {
   const rankLower = rank?.toLowerCase() || '';
   
-  if (rankLower.includes('crown') || rankLower.includes('ambassador') || rankLower.includes('legend')) {
+  // SSVPL Legend - Ultimate gradient ring
+  if (rankLower.includes('ssvpl')) {
     return { 
       ring: 'ring-4 ring-purple-500 ring-offset-2 ring-offset-background',
-      badge: 'bg-purple-500 text-white',
-      glow: 'shadow-[0_0_25px_rgba(168,85,247,0.5)]',
-      border: 'border-purple-500',
+      badge: 'bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500 text-white',
+      glow: 'shadow-[0_0_35px_rgba(168,85,247,0.8)]',
+      border: 'border-transparent bg-gradient-to-tr from-purple-500 via-pink-500 to-yellow-500 bg-clip-border',
+    };
+  }
+  // Legend (non-SSVPL) - Black/Gold
+  if (rankLower.includes('legend')) {
+    return { 
+      ring: 'ring-4 ring-amber-500 ring-offset-2 ring-offset-background',
+      badge: 'bg-neutral-900 text-amber-400',
+      glow: 'shadow-[0_0_30px_rgba(245,158,11,0.7)]',
+      border: 'border-neutral-900',
+    };
+  }
+  // Royal - Deep Gold
+  if (rankLower.includes('royal')) {
+    return { 
+      ring: 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-background',
+      badge: 'bg-yellow-600 text-white',
+      glow: 'shadow-[0_0_28px_rgba(202,138,4,0.6)]',
+      border: 'border-yellow-600',
+    };
+  }
+  // Elite - Silver/Red shield
+  if (rankLower.includes('elite')) {
+    return { 
+      ring: 'ring-4 ring-red-500 ring-offset-2 ring-offset-background',
+      badge: 'bg-slate-500 text-white',
+      glow: 'shadow-[0_0_25px_rgba(239,68,68,0.6)]',
+      border: 'border-slate-500',
+    };
+  }
+  // Crown / Ambassador
+  if (rankLower.includes('crown') || rankLower.includes('ambassador')) {
+    return { 
+      ring: 'ring-4 ring-purple-600 ring-offset-2 ring-offset-background',
+      badge: 'bg-purple-600 text-white',
+      glow: 'shadow-[0_0_25px_rgba(147,51,234,0.5)]',
+      border: 'border-purple-600',
     };
   }
   if (rankLower.includes('sapphire')) {
