@@ -11,7 +11,7 @@ import { Users, ChevronLeft, ChevronRight, UserX, Search, FileSpreadsheet, FileT
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import api from '@/lib/api';
+import { getDirectTeam } from '@/services/userService';
 import { cn } from '@/lib/utils';
 
 interface TeamMember {
@@ -66,13 +66,11 @@ const DirectTeam = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.get<DirectTeamResponse>('/api/v1/user/direct-team', {
-        params: { page, limit: 10, leg }
-      });
+      const response = await getDirectTeam(page, 10, leg);
       
-      if (response.data.success) {
-        setData(response.data.data.team || []);
-        setPagination(response.data.data.pagination);
+      if (response.success) {
+        setData(response.data?.team || []);
+        setPagination(response.data?.pagination || null);
       }
     } catch (err: any) {
       console.error('Failed to fetch direct team:', err);

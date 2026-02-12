@@ -77,3 +77,19 @@ export const getPayoutHistory = async () => {
   if (body?.payouts) return body.payouts;
   return [];
 };
+
+// Fetch direct team by leg
+export const getDirectTeam = async (page = 1, limit = 10, leg?: 'left' | 'right') => {
+  const params: Record<string, any> = { page, limit };
+  if (leg) params.leg = leg;
+  const response = await api.get('/api/v1/user/direct-team', { params });
+  return response.data;
+};
+
+// Fetch complete downline team (leg is required)
+export const getDownlineTeam = async (leg: 'left' | 'right', page = 1, limit = 10) => {
+  const response = await api.get('/api/v1/user/team/complete', {
+    params: { leg, page, limit }
+  });
+  return response.data;
+};
