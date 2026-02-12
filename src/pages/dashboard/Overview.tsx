@@ -18,8 +18,8 @@ const Overview = () => {
   // Use real data from the authenticated user
   const walletBalance = user?.wallet?.availableBalance || 0;
   const totalEarnings = user?.wallet?.totalEarnings || 0;
-  const leftPV = user?.leftPV || 0;
-  const rightPV = user?.rightPV || 0;
+  const leftTeamCount = user?.leftTeamCount || 0;
+  const rightTeamCount = user?.rightTeamCount || 0;
   const rank = user?.rank || 'Starter';
   const userName = user?.fullName?.split(' ')[0] || 'User';
   const memberId = user?.memberId || '';
@@ -118,31 +118,33 @@ const Overview = () => {
         ))}
       </div>
       
-      {/* PV Summary */}
+      {/* Team Status */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-border">
           <CardHeader>
-            <CardTitle className="text-foreground">Business Volume</CardTitle>
+            <CardTitle className="text-foreground">Network Overview</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-accent rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Left Leg PV</p>
+                <p className="text-sm text-muted-foreground mb-1">Left Team</p>
                 <p className="text-3xl font-bold text-accent-foreground">
-                  {leftPV.toLocaleString()}
+                  {leftTeamCount.toLocaleString()}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">Members</p>
               </div>
               <div className="text-center p-4 bg-accent rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Right Leg PV</p>
+                <p className="text-sm text-muted-foreground mb-1">Right Team</p>
                 <p className="text-3xl font-bold text-accent-foreground">
-                  {rightPV.toLocaleString()}
+                  {rightTeamCount.toLocaleString()}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1">Members</p>
               </div>
             </div>
             <div className="mt-4 p-3 bg-muted/20 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">Matching Bonus: </span>
-                Earn 10% on your weaker leg volume every week
+                <span className="font-medium text-foreground">Tip: </span>
+                Grow your team to unlock higher ranks
               </p>
             </div>
           </CardContent>
