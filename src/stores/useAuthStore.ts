@@ -49,6 +49,7 @@ export interface ApiUser {
   sponsorName?: string;
   panCardNumber: string;
   rank: string;
+  currentRank?: string;
   role: 'user' | 'admin';
   leftPV: number;
   rightPV: number;
