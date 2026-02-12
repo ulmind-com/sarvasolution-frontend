@@ -26,6 +26,7 @@ import ChangePassword from "./pages/dashboard/ChangePassword";
 import CappingReport from "./pages/dashboard/CappingReport";
 import IncomeReport from "./pages/dashboard/IncomeReport";
 import FastTrackBonus from "./pages/dashboard/FastTrackBonus";
+import StarMatchingBonus from "./pages/dashboard/StarMatchingBonus";
 import WelcomeLetter from "./pages/dashboard/WelcomeLetter";
 import ProductCatalog from "./pages/user/ProductCatalog";
 
@@ -151,6 +152,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <DashboardLayout>
             <FastTrackBonus />
+          </DashboardLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard/incomes/star-matching" element={
+        <ProtectedRoute>
+          <DashboardLayout>
+            <StarMatchingBonus />
           </DashboardLayout>
         </ProtectedRoute>
       } />
