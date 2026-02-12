@@ -12,6 +12,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import FranchiseLogin from "./pages/FranchiseLogin";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 
 // Dashboard
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -84,6 +86,8 @@ const AppRoutes = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/join/:referralId" element={<Register />} />
       <Route path="/franchise/login" element={<FranchiseLogin />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
       
       {/* Dashboard Routes */}
       <Route path="/dashboard" element={
