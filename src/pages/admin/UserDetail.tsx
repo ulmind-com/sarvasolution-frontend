@@ -30,14 +30,23 @@ import {
   XCircle,
   Loader2,
   RefreshCw,
+  LockKeyhole,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -112,6 +121,38 @@ const UserDetail = () => {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
   const [isKYCActionLoading, setIsKYCActionLoading] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!memberId) return;
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    try {
+      setIsPasswordLoading(true);
+      await api.patch(`/api/v1/admin/users/${memberId}/change-password`, {
+        newPassword,
+      });
+      toast.success('Password updated successfully');
+      setIsPasswordModalOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update password');
+    } finally {
+      setIsPasswordLoading(false);
+    }
+  };
 
   const fetchUserDetail = useCallback(async () => {
     if (!memberId) return;
@@ -261,7 +302,7 @@ const UserDetail = () => {
                 </Badge>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
@@ -269,6 +310,15 @@ const UserDetail = () => {
               >
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit Profile
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                onClick={() => setIsPasswordModalOpen(true)}
+              >
+                <LockKeyhole className="mr-2 h-4 w-4" />
+                Change Password
               </Button>
               <Badge className="text-sm px-4 py-2">
                 <Crown className="mr-2 h-4 w-4" />
@@ -278,6 +328,94 @@ const UserDetail = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Change Password Modal */}
+      <Dialog open={isPasswordModalOpen} onOpenChange={(open) => {
+        setIsPasswordModalOpen(open);
+        if (!open) {
+          setNewPassword('');
+          setConfirmPassword('');
+          setShowNewPassword(false);
+          setShowConfirmPassword(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LockKeyhole className="h-5 w-5" />
+              Change Password for {memberId}
+            </DialogTitle>
+            <DialogDescription>
+              Set a new password for this user. No old password is required.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="Min. 6 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-sm text-destructive">Passwords do not match</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsPasswordModalOpen(false)} disabled={isPasswordLoading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={!newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < 6 || isPasswordLoading}
+            >
+              {isPasswordLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                'Update Password'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit User Modal */}
       {user && (
