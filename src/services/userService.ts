@@ -92,6 +92,12 @@ export const getFastTrackStatus = async () => {
   return response.data;
 };
 
+// Fetch star matching bonus status
+export const getStarMatchingStatus = async () => {
+  const response = await api.get('/api/v1/user/star-matching-status');
+  return response.data;
+};
+
 // Fetch complete downline team (leg is required)
 export const getDownlineTeam = async (leg: 'left' | 'right', page = 1, limit = 10) => {
   const response = await api.get('/api/v1/user/team/complete', {
