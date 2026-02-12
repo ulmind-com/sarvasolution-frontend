@@ -18,6 +18,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { 
   Check, 
   X, 
@@ -188,12 +200,58 @@ const PayoutRequests = () => {
     }
   };
 
-  const handleMarkAsPaid = async (payoutId: string) => {
-    toast.info('Mark as Paid functionality will be available soon');
+  // Single approve/reject state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    type: 'approve' | 'reject';
+    payout: PayoutRequest;
+  } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isSingleProcessing, setIsSingleProcessing] = useState(false);
+
+  const handleMarkAsPaid = (payoutId: string) => {
+    const payout = payouts.find(p => p._id === payoutId);
+    if (payout) setConfirmDialog({ type: 'approve', payout });
   };
 
-  const handleRejectSingle = async (payoutId: string) => {
-    toast.info('Reject functionality will be available soon');
+  const handleRejectSingle = (payoutId: string) => {
+    const payout = payouts.find(p => p._id === payoutId);
+    if (payout) {
+      setRejectReason('');
+      setConfirmDialog({ type: 'reject', payout });
+    }
+  };
+
+  const confirmApprove = async () => {
+    if (!confirmDialog) return;
+    setIsSingleProcessing(true);
+    try {
+      await api.patch(`/api/v1/admin/payouts/${confirmDialog.payout._id}/accept`);
+      toast.success('Payout Approved');
+      setConfirmDialog(null);
+      fetchPayouts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to approve payout');
+    } finally {
+      setIsSingleProcessing(false);
+    }
+  };
+
+  const confirmReject = async () => {
+    if (!confirmDialog) return;
+    setIsSingleProcessing(true);
+    try {
+      await api.patch(`/api/v1/admin/payouts/${confirmDialog.payout._id}/reject`, {
+        rejectionReason: rejectReason || undefined,
+      });
+      toast.success('Payout Rejected');
+      setConfirmDialog(null);
+      setRejectReason('');
+      fetchPayouts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to reject payout');
+    } finally {
+      setIsSingleProcessing(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -519,6 +577,60 @@ const PayoutRequests = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Approve Confirmation Dialog */}
+      <AlertDialog open={confirmDialog?.type === 'approve'} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve Payout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to approve this payout of{' '}
+              <span className="font-bold">₹{(confirmDialog?.payout.netAmount || confirmDialog?.payout.grossAmount || 0).toLocaleString()}</span>{' '}
+              for <span className="font-bold">{confirmDialog?.payout.userId?.fullName || confirmDialog?.payout.userId?.name || 'Unknown'}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSingleProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmApprove} disabled={isSingleProcessing}>
+              {isSingleProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Check className="h-4 w-4 mr-2" />}
+              Approve
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={confirmDialog?.type === 'reject'} onOpenChange={(open) => !open && setConfirmDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">Reject Payout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Reject payout of{' '}
+              <span className="font-bold">₹{(confirmDialog?.payout.netAmount || confirmDialog?.payout.grossAmount || 0).toLocaleString()}</span>{' '}
+              for <span className="font-bold">{confirmDialog?.payout.userId?.fullName || confirmDialog?.payout.userId?.name || 'Unknown'}</span>?
+              The amount will be refunded to the user's wallet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="reject-reason">Rejection Reason (optional)</Label>
+            <Textarea
+              id="reject-reason"
+              placeholder="e.g., Invalid bank details, suspicious activity..."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              className="resize-none"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSingleProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReject} disabled={isSingleProcessing} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {isSingleProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <X className="h-4 w-4 mr-2" />}
+              Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
