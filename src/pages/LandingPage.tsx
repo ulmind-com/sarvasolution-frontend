@@ -494,9 +494,12 @@ const LandingPage = () => {
             </div>
           </div>
           
-          <div className="border-t border-slate-800 pt-6 text-center">
+          <div className="border-t border-slate-800 pt-6 flex flex-col md:flex-row justify-between items-center gap-2">
             <p className="text-slate-400 text-sm">
               © 2026 Sarva Solution Vision Pvt. Ltd. All rights reserved.
+            </p>
+            <p className="text-slate-400 text-sm">
+              Developed by <a href="https://www.ulmind.com" target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-500 hover:text-emerald-400 hover:underline">ULMind</a>
             </p>
           </div>
         </div>
