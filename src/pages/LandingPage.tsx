@@ -474,7 +474,7 @@ const LandingPage = () => {
             </div>
             
             <div className="flex justify-center gap-4">
-              <a href="#" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
+              <a href="https://www.facebook.com/share/187rjGnTre/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
                 <Facebook className="h-5 w-5 text-white" />
               </a>
               <a href="#" className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center hover:bg-teal-600 transition-colors">
