@@ -15,7 +15,7 @@ import { useFranchiseAuthStore } from '@/stores/useFranchiseAuthStore';
 interface VerifiedMember {
   _id: string;
   memberId: string;
-  name: string;
+  fullName: string;
   status: string;
   phone?: string;
   email?: string;
@@ -125,7 +125,7 @@ const FranchiseCreateBill = () => {
         setVerifiedMember({
           _id: member._id,
           memberId: member.memberId,
-          name: member.name || 'N/A',
+          fullName: member.fullName || member.name || 'Unknown Member',
           status: member.status || 'active',
           phone: member.phone,
           email: member.email,
@@ -319,8 +319,9 @@ const FranchiseCreateBill = () => {
                           <CheckCircle2 className="h-6 w-6 text-green-500" />
                         </div>
                         <div>
-                          <p className="font-semibold text-lg">{verifiedMember.name}</p>
+                          <p className="font-semibold text-lg">{verifiedMember.fullName}</p>
                           <p className="text-sm text-muted-foreground">ID: {verifiedMember.memberId}</p>
+                          <p className="text-xs text-muted-foreground">{verifiedMember.email} • {verifiedMember.phone}</p>
                         </div>
                       </div>
                       <Badge variant="default" className="bg-green-500">
@@ -569,7 +570,7 @@ const FranchiseCreateBill = () => {
             </div>
             <DialogTitle className="text-center text-xl">Sale Completed Successfully! ✅</DialogTitle>
             <DialogDescription className="text-center">
-              Invoice generated for {verifiedMember?.name}
+              Invoice generated for {verifiedMember?.fullName}
             </DialogDescription>
           </DialogHeader>
           
