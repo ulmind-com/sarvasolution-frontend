@@ -30,7 +30,6 @@ import {
   IndianRupee,
   Award,
   FileText,
-  Package,
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -62,8 +61,7 @@ const menuItems: MenuItem[] = [
     ]
   },
   { path: '/dashboard/welcome-letter', label: 'Welcome Letter', icon: Award },
-  { path: '/user/products', label: 'Product Catalog', icon: Package },
-  { path: '/dashboard/store', label: 'Product Store', icon: ShoppingBag },
+  { path: '/user/products', label: 'Product Store', icon: ShoppingBag },
   { path: '/dashboard/wallet', label: 'Wallet', icon: Wallet },
   { 
     label: 'My Incomes', 
