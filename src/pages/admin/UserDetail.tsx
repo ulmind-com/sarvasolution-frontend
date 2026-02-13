@@ -446,14 +446,10 @@ const UserDetail = () => {
 
       {/* Tabs Section */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="wallet" className="flex items-center gap-2">
-            <Wallet className="h-4 w-4" />
-            <span className="hidden sm:inline">Wallet</span>
           </TabsTrigger>
           <TabsTrigger value="kyc" className="flex items-center gap-2">
             <FileCheck className="h-4 w-4" />
@@ -556,128 +552,7 @@ const UserDetail = () => {
           </div>
         </TabsContent>
 
-        {/* Tab 2: Wallet & Funds */}
-        <TabsContent value="wallet" className="space-y-6">
-          {/* Wallet Summary */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Available Balance</p>
-                <p className="text-2xl font-bold text-primary mt-1">
-                  {formatCurrency(user.wallet?.availableBalance)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Total Earnings</p>
-                <p className="text-2xl font-bold mt-1">
-                  {formatCurrency(user.wallet?.totalEarnings)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">Withdrawn Amount</p>
-                <p className="text-2xl font-bold mt-1">
-                  {formatCurrency(user.wallet?.withdrawnAmount)}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Funds Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Car className="h-4 w-4" />
-                  Bike/Car Fund
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Contributed BV</span>
-                    <span>{user.carFund?.totalBVContributed || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Next Target</span>
-                    <span>{user.carFund?.nextTargetBV || 0}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  House Fund
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Contributed BV</span>
-                    <span>{user.houseFund?.totalBVContributed || 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Next Target</span>
-                    <span>{user.houseFund?.nextTargetBV || 0}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Crown className="h-4 w-4" />
-                  Royalty Fund
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Contributed BV</span>
-                  <span>{user.royaltyFund?.totalBVContributed || 0}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Rocket className="h-4 w-4" />
-                  StartUp Bonus
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Earned</span>
-                  <span className="font-medium">{formatCurrency(user.startupBonus?.earned)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Award className="h-4 w-4" />
-                  Leadership Bonus
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Earned</span>
-                  <span className="font-medium">{formatCurrency(user.leadershipBonus?.earned)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Tab 3: KYC Documents */}
+        {/* Tab 2: KYC Documents */}
         <TabsContent value="kyc" className="space-y-6">
           {/* Status Banners */}
           {(user.kyc?.status === 'approved' || user.kyc?.status === 'verified') && (
