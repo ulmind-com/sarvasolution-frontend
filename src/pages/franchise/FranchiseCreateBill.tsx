@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, User, Package, Trash2, ShoppingCart, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Search, User, Package, Trash2, ShoppingCart, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { getMemberByCode, getProductMasterDetails, processFranchiseSale } from '@/services/franchiseService';
+import { getMemberByCode, processFranchiseSale, getFranchiseInventory } from '@/services/franchiseService';
 import { useFranchiseAuthStore } from '@/stores/useFranchiseAuthStore';
 
 interface VerifiedMember {
@@ -21,16 +21,22 @@ interface VerifiedMember {
   email?: string;
 }
 
-interface ProductDetails {
+interface InventoryItem {
   _id: string;
-  productName: string;
-  productImage?: { url: string };
-  price: number;
-  productDP?: number;
-  bv: number;
-  pv: number;
+  product: {
+    _id: string;
+    productName: string;
+    productImage?: { url: string };
+    price?: number;
+    productDP?: number;
+    mrp?: number;
+    bv: number;
+    pv: number;
+    category?: string;
+    stockQuantity?: number;
+  };
   stockQuantity: number;
-  category?: string;
+  purchasePrice?: number;
 }
 
 interface CartItem {
@@ -40,6 +46,7 @@ interface CartItem {
   price: number;
   bv: number;
   pv: number;
+  maxStock: number;
 }
 
 const FranchiseCreateBill = () => {
@@ -51,10 +58,11 @@ const FranchiseCreateBill = () => {
   const [verifiedMember, setVerifiedMember] = useState<VerifiedMember | null>(null);
   const [isMemberLoading, setIsMemberLoading] = useState(false);
 
-  // Product State
-  const [productIdInput, setProductIdInput] = useState('');
-  const [productDetails, setProductDetails] = useState<ProductDetails | null>(null);
-  const [isProductLoading, setIsProductLoading] = useState(false);
+  // Inventory State
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isInventoryLoading, setIsInventoryLoading] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   const [quantity, setQuantity] = useState(1);
 
   // Cart State
@@ -75,10 +83,31 @@ const FranchiseCreateBill = () => {
   } | null>(null);
 
   // Redirect if not authenticated (after all hooks)
-  if (!isAuthenticated) {
-    navigate('/franchise/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/franchise/login');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Fetch franchise inventory on mount
+  useEffect(() => {
+    const fetchInventory = async () => {
+      setIsInventoryLoading(true);
+      try {
+        const response = await getFranchiseInventory();
+        const items = response.data?.inventory || response.inventory || response.data || [];
+        setInventory(Array.isArray(items) ? items : []);
+      } catch (error) {
+        console.error('Failed to fetch inventory:', error);
+        toast.error('Failed to load inventory');
+      } finally {
+        setIsInventoryLoading(false);
+      }
+    };
+    if (isAuthenticated) fetchInventory();
+  }, [isAuthenticated]);
+
+  if (!isAuthenticated) return null;
 
   // ===== Member Verification =====
   const handleVerifyMember = async () => {
@@ -118,88 +147,58 @@ const FranchiseCreateBill = () => {
   const handleClearMember = () => {
     setVerifiedMember(null);
     setMemberIdInput('');
-    setProductDetails(null);
-    setProductIdInput('');
+    setSelectedInventoryItem(null);
+    setSelectedProductId('');
     setCart([]);
   };
 
-  // ===== Product Lookup =====
-  const handleCheckProduct = async () => {
-    if (!productIdInput.trim()) {
-      toast.error('Please enter a Product ID');
-      return;
-    }
-
-    setIsProductLoading(true);
-    try {
-      const response = await getProductMasterDetails(productIdInput.trim());
-      const product = response.data?.product || response.product || response.data || response;
-      
-      if (product && product._id) {
-        setProductDetails({
-          _id: product._id,
-          productName: product.productName || 'Unknown Product',
-          productImage: product.productImage,
-          price: product.price || product.productDP || 0,
-          productDP: product.productDP,
-          bv: product.bv || 0,
-          pv: product.pv || 0,
-          stockQuantity: product.stockQuantity || 0,
-          category: product.category,
-        });
-        setQuantity(1);
-        toast.success('Product found!');
-      } else {
-        toast.error('Product not found');
-        setProductDetails(null);
-      }
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Product not found';
-      toast.error(errorMsg);
-      setProductDetails(null);
-    } finally {
-      setIsProductLoading(false);
-    }
+  // ===== Product Selection from Inventory =====
+  const handleProductSelect = (productId: string) => {
+    setSelectedProductId(productId);
+    const item = inventory.find((i) => i.product._id === productId);
+    setSelectedInventoryItem(item || null);
+    setQuantity(1);
   };
 
   const handleAddToCart = () => {
-    if (!productDetails) return;
+    if (!selectedInventoryItem) return;
+    const product = selectedInventoryItem.product;
+    const availableStock = selectedInventoryItem.stockQuantity;
 
     if (quantity < 1) {
       toast.error('Quantity must be at least 1');
       return;
     }
 
-    if (quantity > productDetails.stockQuantity) {
-      toast.error(`Only ${productDetails.stockQuantity} units available`);
+    const existingIndex = cart.findIndex((item) => item.productId === product._id);
+    const existingQty = existingIndex >= 0 ? cart[existingIndex].quantity : 0;
+
+    if (existingQty + quantity > availableStock) {
+      toast.error(`Only ${availableStock - existingQty} more units available`);
       return;
     }
 
-    const existingIndex = cart.findIndex((item) => item.productId === productDetails._id);
-    
+    const price = product.productDP || product.price || selectedInventoryItem.purchasePrice || 0;
+
     if (existingIndex >= 0) {
-      const newQty = cart[existingIndex].quantity + quantity;
-      if (newQty > productDetails.stockQuantity) {
-        toast.error(`Cannot exceed available stock (${productDetails.stockQuantity})`);
-        return;
-      }
-      setCart(cart.map((item, i) => 
-        i === existingIndex ? { ...item, quantity: newQty } : item
+      setCart(cart.map((item, i) =>
+        i === existingIndex ? { ...item, quantity: item.quantity + quantity } : item
       ));
     } else {
       setCart([...cart, {
-        productId: productDetails._id,
-        name: productDetails.productName,
+        productId: product._id,
+        name: product.productName,
         quantity,
-        price: productDetails.price,
-        bv: productDetails.bv,
-        pv: productDetails.pv,
+        price,
+        bv: product.bv || 0,
+        pv: product.pv || 0,
+        maxStock: availableStock,
       }]);
     }
 
-    toast.success(`${productDetails.productName} added to bill`);
-    setProductDetails(null);
-    setProductIdInput('');
+    toast.success(`${product.productName} added to bill`);
+    setSelectedInventoryItem(null);
+    setSelectedProductId('');
     setQuantity(1);
   };
 
@@ -260,11 +259,14 @@ const FranchiseCreateBill = () => {
     setSaleResult(null);
     setVerifiedMember(null);
     setMemberIdInput('');
-    setProductDetails(null);
-    setProductIdInput('');
+    setSelectedInventoryItem(null);
+    setSelectedProductId('');
     setCart([]);
     setPaymentMethod('cash');
   };
+
+  // Filter inventory to only show items with stock > 0
+  const availableInventory = inventory.filter((item) => item.stockQuantity > 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -333,39 +335,50 @@ const FranchiseCreateBill = () => {
               </CardContent>
             </Card>
 
-            {/* Step 2: Product Addition */}
+            {/* Step 2: Product Addition from Inventory */}
             <Card className={!verifiedMember ? 'opacity-50 pointer-events-none' : ''}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Package className="h-5 w-5" />
                   Step 2: Add Products
                 </CardTitle>
-                <CardDescription>Search products by ID and add to bill</CardDescription>
+                <CardDescription>Select products from your inventory</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Product Search */}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter Product ID"
-                    value={productIdInput}
-                    onChange={(e) => setProductIdInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCheckProduct()}
-                    disabled={!verifiedMember}
-                  />
-                    <Button type="button" onClick={handleCheckProduct} disabled={isProductLoading || !verifiedMember}>
-                      <Search className="h-4 w-4 mr-2" />
-                      {isProductLoading ? 'Checking...' : 'Check'}
-                    </Button>
-                </div>
+                {/* Inventory Dropdown */}
+                {isInventoryLoading ? (
+                  <div className="flex items-center gap-2 text-muted-foreground py-4 justify-center">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Loading inventory...</span>
+                  </div>
+                ) : availableInventory.length === 0 ? (
+                  <div className="py-4 text-center text-muted-foreground">
+                    <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No products in inventory. Request stock first.</p>
+                  </div>
+                ) : (
+                  <Select value={selectedProductId} onValueChange={handleProductSelect} disabled={!verifiedMember}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Product from Inventory" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableInventory.map((item) => (
+                        <SelectItem key={item.product._id} value={item.product._id}>
+                          {item.product.productName} (Stock: {item.stockQuantity})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
 
-                {/* Product Preview */}
-                {productDetails && (
+                {/* Selected Product Preview */}
+                {selectedInventoryItem && (
                   <div className="p-4 border rounded-lg bg-muted/30">
                     <div className="flex gap-4">
-                      {productDetails.productImage?.url ? (
+                      {selectedInventoryItem.product.productImage?.url ? (
                         <img
-                          src={productDetails.productImage.url}
-                          alt={productDetails.productName}
+                          src={selectedInventoryItem.product.productImage.url}
+                          alt={selectedInventoryItem.product.productName}
                           className="h-20 w-20 rounded-lg object-cover border"
                         />
                       ) : (
@@ -374,26 +387,26 @@ const FranchiseCreateBill = () => {
                         </div>
                       )}
                       <div className="flex-1">
-                        <h4 className="font-semibold">{productDetails.productName}</h4>
-                        {productDetails.category && (
-                          <Badge variant="secondary" className="mt-1">{productDetails.category}</Badge>
+                        <h4 className="font-semibold">{selectedInventoryItem.product.productName}</h4>
+                        {selectedInventoryItem.product.category && (
+                          <Badge variant="secondary" className="mt-1">{selectedInventoryItem.product.category}</Badge>
                         )}
                         <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
                           <div className="p-2 bg-background rounded text-center">
                             <p className="text-muted-foreground text-xs">Price</p>
-                            <p className="font-bold">₹{productDetails.price}</p>
+                            <p className="font-bold">₹{selectedInventoryItem.product.productDP || selectedInventoryItem.product.price || selectedInventoryItem.purchasePrice || 0}</p>
                           </div>
                           <div className="p-2 bg-background rounded text-center">
                             <p className="text-muted-foreground text-xs">BV</p>
-                            <p className="font-bold">{productDetails.bv}</p>
+                            <p className="font-bold">{selectedInventoryItem.product.bv || 0}</p>
                           </div>
                           <div className="p-2 bg-background rounded text-center">
                             <p className="text-muted-foreground text-xs">PV</p>
-                            <p className="font-bold">{productDetails.pv}</p>
+                            <p className="font-bold">{selectedInventoryItem.product.pv || 0}</p>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Stock: {productDetails.stockQuantity} units
+                        <p className="text-xs mt-2 font-medium text-green-600">
+                          Available Stock: {selectedInventoryItem.stockQuantity} units
                         </p>
                       </div>
                     </div>
@@ -404,7 +417,7 @@ const FranchiseCreateBill = () => {
                         <Input
                           type="number"
                           min={1}
-                          max={productDetails.stockQuantity}
+                          max={selectedInventoryItem.stockQuantity}
                           value={quantity}
                           onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                           className="w-20"
@@ -560,7 +573,6 @@ const FranchiseCreateBill = () => {
             </DialogDescription>
           </DialogHeader>
           
-          {/* Sale Number */}
           {saleResult?.saleNo && (
             <div className="text-center p-3 bg-muted rounded-lg">
               <p className="text-xs text-muted-foreground">Sale No</p>
@@ -568,7 +580,6 @@ const FranchiseCreateBill = () => {
             </div>
           )}
 
-          {/* Grand Total */}
           <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg text-center">
             <p className="text-xs text-muted-foreground mb-1">Grand Total</p>
             <p className="text-3xl font-bold text-primary">
@@ -576,7 +587,6 @@ const FranchiseCreateBill = () => {
             </p>
           </div>
 
-          {/* BV/PV Summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-muted rounded-lg text-center">
               <p className="text-xs text-muted-foreground">Total BV</p>
@@ -588,7 +598,6 @@ const FranchiseCreateBill = () => {
             </div>
           </div>
 
-          {/* Status Badges */}
           <div className="flex flex-wrap gap-2 justify-center">
             {saleResult?.userActivated && (
               <Badge className="bg-green-500">User Activated! 🎉</Badge>
