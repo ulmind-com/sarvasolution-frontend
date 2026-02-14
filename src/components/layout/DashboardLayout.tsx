@@ -29,7 +29,7 @@ import {
   Menu,
   IndianRupee,
   Award,
-  FileText,
+  
   ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -82,7 +82,6 @@ const menuItems: MenuItem[] = [
       { path: '/dashboard/incomes/super-performance', label: 'Super Performance Bonus' },
     ]
   },
-  { path: '/dashboard/capping', label: 'Capping Summary', icon: FileText },
   { 
     label: 'My Profile', 
     icon: User,
