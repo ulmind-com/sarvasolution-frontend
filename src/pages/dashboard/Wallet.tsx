@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Wallet as WalletIcon, ArrowUpRight, ArrowDownRight, Clock, Loader2, CheckCircle } from 'lucide-react';
 import { getWalletSummary, getPayoutHistory } from '@/services/userService';
+import { formatDateIST } from '@/lib/dateUtils';
 
 interface WalletSummary {
   totalEarnings: number;
@@ -35,6 +36,8 @@ interface PayoutRecord {
   netAmount: number;
   status: string;
   createdAt: string;
+  createdAt_IST?: string;
+  updatedAt_IST?: string;
 }
 
 const Wallet = () => {
@@ -160,7 +163,7 @@ const Wallet = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
-                    <TableHead className="text-muted-foreground">Date</TableHead>
+                    <TableHead className="text-muted-foreground">Date & Time</TableHead>
                     <TableHead className="text-muted-foreground">Type</TableHead>
                     <TableHead className="text-right text-muted-foreground">Gross</TableHead>
                     <TableHead className="text-right text-muted-foreground">Deductions</TableHead>
@@ -183,9 +186,10 @@ const Wallet = () => {
                       return (
                         <TableRow key={row._id} className="border-border">
                           <TableCell className="text-muted-foreground">
-                            {new Date(row.createdAt).toLocaleDateString('en-IN', {
-                              day: '2-digit', month: 'short', year: 'numeric',
-                            })}
+                            <div className="flex flex-col">
+                              <span className="font-medium">{formatDateIST(row.createdAt, row.createdAt_IST).split(' ').slice(0, -1).join(' ')}</span>
+                              <span className="text-xs">{row.createdAt_IST?.split(' ')[1] || formatDateIST(row.createdAt).split(', ').pop() || ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
