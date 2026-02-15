@@ -193,7 +193,7 @@ const WelcomeLetter = () => {
               Corporate Office - P.C. Mitra Lane, Parapukur (Near - Tinkonia Bus Stand), Purba Bardhaman, Pin - 713101
             </p>
             <p style={{ fontSize: '11px', color: '#4b5563' }}>
-              Phone: +91 98322 57991 | Web: www.sarvasolutionvision.com | E-mail: sarvasolution25@gmail.com
+              Phone: +91 98327 75700 | Web: www.sarvasolutionvision.com | E-mail: sarvasolution25@gmail.com
             </p>
           </div>
 

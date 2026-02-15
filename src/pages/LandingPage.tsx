@@ -449,10 +449,8 @@ const LandingPage = () => {
                   </a>
                 </p>
                 <p>www.sarvasolutionvision.com</p>
-                <div className="pt-2 space-y-1">
-                  <p><a href="tel:+919832257991" className="hover:text-teal-400 transition-colors">+91 98322 57991</a></p>
-                  <p><a href="tel:+919564313062" className="hover:text-teal-400 transition-colors">+91 95643 13062</a></p>
-                  <p><a href="tel:+918629962669" className="hover:text-teal-400 transition-colors">+91 86299 62669</a></p>
+                <div className="pt-2">
+                  <p><a href="tel:+919832775700" className="hover:text-teal-400 transition-colors">+91 98327 75700</a></p>
                 </div>
               </div>
             </motion.div>
