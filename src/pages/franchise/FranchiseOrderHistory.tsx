@@ -8,27 +8,34 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import { getFranchiseSalesHistory } from '@/services/franchiseService';
 import { useFranchiseAuthStore } from '@/stores/useFranchiseAuthStore';
+import { generateInvoicePDF } from '@/lib/generateInvoicePDF';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 interface SaleItem {
-  product?: { productName?: string };
+  product?: { productName?: string; hsnCode?: string };
   productName?: string;
   quantity?: number;
   requestedQuantity?: number;
+  price?: number;
   amount?: number;
+  pv?: number;
 }
 
 interface Sale {
   _id: string;
   saleNo: string;
   saleDate: string;
-  user?: { fullName?: string };
+  createdAt_IST?: string;
+  user?: { fullName?: string; memberId?: string; phone?: string; email?: string; address?: { country?: string; city?: string; state?: string } };
   memberId?: string;
   items: SaleItem[];
+  subTotal?: number;
+  gstAmount?: number;
   totalPV?: number;
   totalBV?: number;
   grandTotal: number;
+  paymentMethod?: string;
   paymentStatus?: string;
 }
 
@@ -41,7 +48,7 @@ interface Pagination {
 
 const FranchiseOrderHistory = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useFranchiseAuthStore();
+  const { isAuthenticated, franchise } = useFranchiseAuthStore();
   const [sales, setSales] = useState<Sale[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     currentPage: 1, totalPages: 1, hasNextPage: false, hasPrevPage: false,
@@ -70,20 +77,19 @@ const FranchiseOrderHistory = () => {
     }
   };
 
-  const getItemName = (item: SaleItem) =>
-    item.product?.productName || item.productName || 'N/A';
-
   const exportCSV = () => {
     if (!sales.length) { toast.error('No data to export'); return; }
-    const headers = ['Sale No', 'Date', 'Member ID', 'Customer', 'Items', 'Total PV', 'Grand Total', 'Status'];
+    const headers = ['Sale No', 'Date', 'Member ID', 'Customer', 'Phone', 'Items', 'Total PV', 'Grand Total', 'Payment', 'Status'];
     const rows = sales.map((s) => [
       s.saleNo,
-      new Date(s.saleDate).toLocaleDateString(),
-      s.memberId || '',
+      s.createdAt_IST || new Date(s.saleDate).toLocaleDateString(),
+      s.user?.memberId || s.memberId || '',
       s.user?.fullName || '',
+      s.user?.phone || '',
       s.items.length.toString(),
       (s.totalPV ?? 0).toString(),
       s.grandTotal.toString(),
+      s.paymentMethod || '',
       s.paymentStatus || '',
     ]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
@@ -110,7 +116,7 @@ const FranchiseOrderHistory = () => {
       head: [['Sale No', 'Date', 'Customer', 'Items', 'PV', 'Total (₹)', 'Status']],
       body: sales.map((s) => [
         s.saleNo,
-        new Date(s.saleDate).toLocaleDateString(),
+        s.createdAt_IST || new Date(s.saleDate).toLocaleDateString(),
         s.user?.fullName || s.memberId || '',
         s.items.length,
         s.totalPV ?? 0,
@@ -121,6 +127,11 @@ const FranchiseOrderHistory = () => {
 
     doc.save(`order-history-${new Date().toISOString().slice(0, 10)}.pdf`);
     toast.success('PDF downloaded');
+  };
+
+  const handleDownloadInvoice = (sale: Sale) => {
+    generateInvoicePDF(sale, franchise?.shopName || franchise?.name || 'Franchise Store');
+    toast.success(`Invoice ${sale.saleNo} downloaded`);
   };
 
   if (!isAuthenticated) return null;
@@ -172,31 +183,46 @@ const FranchiseOrderHistory = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Sale No</TableHead>
-                        <TableHead>Date</TableHead>
+                        <TableHead>Sale No & Date</TableHead>
                         <TableHead>Customer</TableHead>
-                        <TableHead className="text-center">Items</TableHead>
-                        <TableHead className="text-center">PV</TableHead>
-                        <TableHead className="text-right">Total (₹)</TableHead>
+                        <TableHead className="text-center">Order Stats</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
                         <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-center">Invoice</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {sales.map((sale) => (
                         <TableRow key={sale._id}>
-                          <TableCell className="font-mono text-sm">{sale.saleNo}</TableCell>
-                          <TableCell>{new Date(sale.saleDate).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-mono text-sm font-medium">{sale.saleNo}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {sale.createdAt_IST || new Date(sale.saleDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                              </p>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div>
                               <p className="font-medium text-sm">{sale.user?.fullName || 'N/A'}</p>
-                              {sale.memberId && (
-                                <p className="text-xs text-muted-foreground">{sale.memberId}</p>
-                              )}
+                              <p className="text-xs text-muted-foreground">
+                                {[sale.user?.memberId || sale.memberId, sale.user?.phone].filter(Boolean).join(' | ')}
+                              </p>
                             </div>
                           </TableCell>
-                          <TableCell className="text-center">{sale.items.length}</TableCell>
-                          <TableCell className="text-center">{sale.totalPV ?? 0}</TableCell>
-                          <TableCell className="text-right font-semibold">₹{sale.grandTotal}</TableCell>
+                          <TableCell className="text-center">
+                            <p className="text-sm">{sale.items.length} Items | {sale.totalPV ?? 0} PV</p>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div>
+                              <p className="font-semibold text-sm text-green-600 dark:text-green-400">
+                                ₹{sale.grandTotal.toLocaleString('en-IN')}
+                              </p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {sale.paymentMethod || 'N/A'}
+                              </p>
+                            </div>
+                          </TableCell>
                           <TableCell className="text-center">
                             <Badge
                               variant={sale.paymentStatus === 'paid' ? 'default' : 'secondary'}
@@ -204,6 +230,16 @@ const FranchiseOrderHistory = () => {
                             >
                               {sale.paymentStatus || 'N/A'}
                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadInvoice(sale)}
+                              title="Download Invoice"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
