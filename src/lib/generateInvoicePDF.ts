@@ -106,8 +106,7 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
   const tableBody = sale.items.map((item, i) => {
     const qty = item.quantity ?? 0;
     const rate = item.price ?? 0;
-    const gross = qty * rate;
-    const taxable = item.amount ?? gross;
+    const gross = item.amount ?? (qty * rate);
     const itemGst = item.gstAmount ?? (totalGst / itemCount);
     const cgst = itemGst / 2;
     const sgst = itemGst / 2;
@@ -116,13 +115,9 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
       item.product?.productName || item.productName || 'N/A',
       item.hsnCode || item.product?.hsnCode || '-',
       String(qty),
-      '-',
-      'Nos',
       fmt(rate),
       fmt(item.productDP ?? rate),
       fmt(gross),
-      '0',
-      fmt(taxable),
       fmt(cgst),
       fmt(sgst),
     ];
@@ -130,7 +125,7 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['Sl', 'Description of Goods', 'HSN', 'QTY', 'Batch', 'UOM', 'Rate', 'MRP', 'Gross', 'Disc', 'Taxable', 'CGST', 'SGST']],
+    head: [['Sl', 'Description of Goods', 'HSN', 'QTY', 'Rate', 'MRP', 'Gross', 'CGST', 'SGST']],
     body: tableBody,
     theme: 'grid',
     headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
@@ -138,18 +133,14 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
     styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.3, lineColor: [0, 0, 0] },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 32 },
-      2: { cellWidth: 14, halign: 'center' },
-      3: { cellWidth: 10, halign: 'center' },
-      4: { cellWidth: 12, halign: 'center' },
-      5: { cellWidth: 10, halign: 'center' },
-      6: { cellWidth: 16, halign: 'right' },
-      7: { cellWidth: 16, halign: 'right' },
-      8: { cellWidth: 16, halign: 'right' },
-      9: { cellWidth: 10, halign: 'center' },
-      10: { cellWidth: 16, halign: 'right' },
-      11: { cellWidth: 14, halign: 'right' },
-      12: { cellWidth: 14, halign: 'right' },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 16, halign: 'center' },
+      3: { cellWidth: 12, halign: 'center' },
+      4: { cellWidth: 20, halign: 'right' },
+      5: { cellWidth: 20, halign: 'right' },
+      6: { cellWidth: 22, halign: 'right' },
+      7: { cellWidth: 18, halign: 'right' },
+      8: { cellWidth: 18, halign: 'right' },
     },
   });
 
@@ -160,9 +151,8 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
 
   const summaryData: [string, string][] = [
     ['Gross Total:', fmt(sale.subTotal ?? sale.grandTotal)],
-    ['CGST:', fmt(cgstTotal)],
-    ['SGST:', fmt(sgstTotal)],
-    ['IGST:', '0.00'],
+    ['CGST (9%):', fmt(cgstTotal)],
+    ['SGST (9%):', fmt(sgstTotal)],
     ['Grand Total:', fmt(sale.grandTotal)],
   ];
 
