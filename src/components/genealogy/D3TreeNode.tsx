@@ -84,10 +84,10 @@ export const transformToD3Format = (node: TreeNodeData | null, position: 'root' 
       isStar: (node as any).isStar ?? false,
       status: node.status,
       // Complete Team Stats
-      leftCompleteActive: node.leftCompleteActive ?? node.leftDirectActive ?? 0,
-      leftCompleteInactive: node.leftCompleteInactive ?? node.leftDirectInactive ?? 0,
-      rightCompleteActive: node.rightCompleteActive ?? node.rightDirectActive ?? 0,
-      rightCompleteInactive: node.rightCompleteInactive ?? node.rightDirectInactive ?? 0,
+      leftCompleteActive: node.leftDirectActive ?? node.leftCompleteActive ?? 0,
+      leftCompleteInactive: node.leftDirectInactive ?? node.leftCompleteInactive ?? 0,
+      rightCompleteActive: node.rightDirectActive ?? node.rightCompleteActive ?? 0,
+      rightCompleteInactive: node.rightDirectInactive ?? node.rightCompleteInactive ?? 0,
       // Total Team Counts
       leftTeamCount: node.leftTeamCount ?? 0,
       rightTeamCount: node.rightTeamCount ?? 0,
