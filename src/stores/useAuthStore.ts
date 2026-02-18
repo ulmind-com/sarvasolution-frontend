@@ -78,9 +78,12 @@ interface RegisterData {
 
 interface RegisterResponse {
   success: boolean;
-  memberId: string;
-  token: string;
   message?: string;
+  data?: {
+    memberId: string;
+    token?: string;
+  };
+  memberId?: string;
 }
 
 interface LoginResponse {
@@ -169,8 +172,7 @@ export const useAuthStore = create<AuthState>()(
         
         try {
           const response = await api.post<RegisterResponse>('/api/v1/register/user', userData);
-          
-          const { memberId } = response.data;
+          const memberId = response.data?.data?.memberId || response.data?.memberId || 'N/A';
           
           set({
             isLoading: false,
