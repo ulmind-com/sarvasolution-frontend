@@ -10,6 +10,8 @@ interface InvoiceItem {
   productDP?: number;
   amount?: number;
   gstAmount?: number;
+  cgstRate?: number;
+  sgstRate?: number;
   pv?: number;
 }
 
@@ -100,32 +102,37 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
 
   // ── Items Table ──
   const tableStartY = pY + pH2 + 2;
-  const itemCount = sale.items.length || 1;
-  const totalGst = sale.gstAmount ?? 0;
+
+  let totalCGST = 0;
+  let totalSGST = 0;
 
   const tableBody = sale.items.map((item, i) => {
     const qty = item.quantity ?? 0;
     const rate = item.price ?? 0;
-    const gross = item.amount ?? (qty * rate);
-    const itemGst = item.gstAmount ?? (totalGst / itemCount);
-    const cgst = itemGst / 2;
-    const sgst = itemGst / 2;
+    const taxableValue = item.amount ?? (qty * rate);
+    const cgstRate = item.cgstRate ?? 0;
+    const sgstRate = item.sgstRate ?? 0;
+    const cgstAmt = (taxableValue * cgstRate) / 100;
+    const sgstAmt = (taxableValue * sgstRate) / 100;
+
+    totalCGST += cgstAmt;
+    totalSGST += sgstAmt;
+
     return [
       String(i + 1),
       item.product?.productName || item.productName || 'N/A',
       item.hsnCode || item.product?.hsnCode || '-',
       String(qty),
       fmt(rate),
-      fmt(item.productDP ?? rate),
-      fmt(gross),
-      fmt(cgst),
-      fmt(sgst),
+      fmt(taxableValue),
+      `${cgstRate}% (${fmt(cgstAmt)})`,
+      `${sgstRate}% (${fmt(sgstAmt)})`,
     ];
   });
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['Sl', 'Description of Goods', 'HSN', 'QTY', 'Rate', 'MRP', 'Gross', 'CGST', 'SGST']],
+    head: [['Sl', 'Description of Goods', 'HSN', 'QTY', 'Rate', 'Total', 'CGST', 'SGST']],
     body: tableBody,
     theme: 'grid',
     headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], fontSize: 7, fontStyle: 'bold', halign: 'center' },
@@ -137,22 +144,19 @@ export const generateInvoicePDF = (sale: InvoiceSale, franchiseName?: string) =>
       2: { cellWidth: 16, halign: 'center' },
       3: { cellWidth: 12, halign: 'center' },
       4: { cellWidth: 20, halign: 'right' },
-      5: { cellWidth: 20, halign: 'right' },
-      6: { cellWidth: 22, halign: 'right' },
-      7: { cellWidth: 18, halign: 'right' },
-      8: { cellWidth: 18, halign: 'right' },
+      5: { cellWidth: 22, halign: 'right' },
+      6: { cellWidth: 28, halign: 'right' },
+      7: { cellWidth: 28, halign: 'right' },
     },
   });
 
   // ── Totals ──
   const finalY = (doc as any).lastAutoTable?.finalY || tableStartY + 30;
-  const cgstTotal = totalGst / 2;
-  const sgstTotal = totalGst / 2;
 
   const summaryData: [string, string][] = [
     ['Gross Total:', fmt(sale.subTotal ?? sale.grandTotal)],
-    ['CGST (9%):', fmt(cgstTotal)],
-    ['SGST (9%):', fmt(sgstTotal)],
+    ['Total CGST:', fmt(totalCGST)],
+    ['Total SGST:', fmt(totalSGST)],
     ['Grand Total:', fmt(sale.grandTotal)],
   ];
 
