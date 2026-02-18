@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { Button } from '@/components/ui/button';
@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, TrendingUp, Eye, EyeOff } from 'lucide-react';
+import { Loader2, TrendingUp, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import MemberIdModal from '@/components/MemberIdModal';
+import api from '@/lib/api';
 
 const Register = () => {
   const { referralId } = useParams<{ referralId: string }>();
@@ -22,6 +23,10 @@ const Register = () => {
     preferredPosition: '' as 'left' | 'right' | '',
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [sponsorName, setSponsorName] = useState<string | null>(null);
+  const [isVerifyingSponsor, setIsVerifyingSponsor] = useState(false);
+  const [sponsorError, setSponsorError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isReferral = !!referralId;
   
   const { register, isLoading, error, clearError } = useAuthStore();
@@ -33,6 +38,40 @@ const Register = () => {
       clearError();
     }
   }, [error, clearError]);
+
+  // Debounced sponsor verification
+  useEffect(() => {
+    const sponsorId = formData.sponsorId.trim();
+    if (!sponsorId) {
+      setSponsorName(null);
+      setSponsorError(null);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setIsVerifyingSponsor(true);
+      setSponsorName(null);
+      setSponsorError(null);
+      try {
+        const res = await api.get(`/api/v1/user-name/${encodeURIComponent(sponsorId)}`);
+        if (res.data?.success && res.data?.data?.fullName) {
+          setSponsorName(res.data.data.fullName);
+        } else {
+          setSponsorError('Invalid Sponsor ID');
+        }
+      } catch {
+        setSponsorError('Invalid Sponsor ID');
+      } finally {
+        setIsVerifyingSponsor(false);
+      }
+    }, 500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [formData.sponsorId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -157,10 +196,23 @@ const Register = () => {
                     value={formData.sponsorId}
                     onChange={handleChange}
                     required
-                    className="bg-card border-input"
+                    className={`bg-card border-input ${sponsorError ? 'border-destructive' : sponsorName ? 'border-green-500' : ''}`}
                     disabled={isLoading || isReferral}
                     readOnly={isReferral}
                   />
+                  {isVerifyingSponsor && (
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Verifying...
+                    </p>
+                  )}
+                  {!isVerifyingSponsor && sponsorName && (
+                    <p className="text-xs text-green-600 font-medium mt-1 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> Sponsor: {sponsorName}
+                    </p>
+                  )}
+                  {!isVerifyingSponsor && sponsorError && (
+                    <p className="text-xs text-destructive mt-1">{sponsorError}</p>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
