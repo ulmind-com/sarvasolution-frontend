@@ -14,13 +14,24 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { generateAdminInvoicePDF } from '@/lib/generateAdminInvoicePDF';
 
 interface SaleItem {
   productId: string;
+  product?: { productName?: string; _id?: string } | string;
   productName?: string;
   name?: string;
+  hsnCode?: string;
   quantity: number;
   price: number;
+  productDP?: number;
+  productMRP?: number;
+  taxableValue?: number;
+  amount?: number;
+  cgstRate?: number;
+  cgstAmount?: number;
+  sgstRate?: number;
+  sgstAmount?: number;
 }
 
 interface Sale {
@@ -43,10 +54,22 @@ interface Sale {
   items: SaleItem[];
   totalAmount?: number;
   grandTotal?: number;
+  subTotal?: number;
+  totalTaxableValue?: number;
+  totalCGST?: number;
+  totalSGST?: number;
   status?: string;
   paymentStatus?: string;
   pdfUrl?: string;
   createdAt: string;
+  createdAt_IST?: string;
+  deliveryAddress?: {
+    shopName?: string;
+    franchiseName?: string;
+    fullAddress?: string;
+    city?: string;
+    state?: string;
+  };
 }
 
 const SaleHistory = () => {
@@ -256,19 +279,19 @@ const SaleHistory = () => {
                             variant="ghost"
                             className="h-8 w-8 p-0"
                             onClick={() => handleViewDetails(sale)}
+                            title="View Details"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          {sale.pdfUrl && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => window.open(sale.pdfUrl, '_blank')}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => generateAdminInvoicePDF(sale as any)}
+                            title="Download Invoice PDF"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -332,15 +355,13 @@ const SaleHistory = () => {
               </div>
 
               {/* Download PDF Button */}
-              {selectedSale.pdfUrl && (
-                <Button
-                  className="w-full"
-                  onClick={() => window.open(selectedSale.pdfUrl, '_blank')}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Invoice PDF
-                </Button>
-              )}
+              <Button
+                className="w-full"
+                onClick={() => generateAdminInvoicePDF(selectedSale as any)}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Download Invoice PDF
+              </Button>
             </div>
           )}
         </DialogContent>
