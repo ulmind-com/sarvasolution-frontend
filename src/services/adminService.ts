@@ -32,6 +32,10 @@ export interface FranchiseRequest {
   items: FranchiseRequestItem[];
   status: 'pending' | 'approved' | 'rejected';
   estimatedTotal: number;
+  grandTotal?: number;
+  totalTaxableValue?: number;
+  totalCGST?: number;
+  totalSGST?: number;
   requestDate: string;
   createdAt: string;
   updatedAt: string;

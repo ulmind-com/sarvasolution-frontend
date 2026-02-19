@@ -231,8 +231,20 @@ const FranchiseRequests = () => {
                       </TableCell>
 
                       {/* Total */}
-                      <TableCell className="text-right font-medium">
-                        ₹{getEstimatedTotal(request).toLocaleString('en-IN')}
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-bold text-foreground">
+                            ₹{request.grandTotal?.toFixed(2) || getEstimatedTotal(request).toLocaleString('en-IN')}
+                          </span>
+                          <span className="text-xs text-muted-foreground mt-0.5">
+                            Base: ₹{request.totalTaxableValue?.toFixed(2) || getEstimatedTotal(request).toLocaleString('en-IN')}
+                          </span>
+                          {((request as any).totalCGST > 0 || (request as any).totalSGST > 0) && (
+                            <span className="text-xs text-muted-foreground">
+                              CGST: ₹{(request as any).totalCGST?.toFixed(2)} | SGST: ₹{(request as any).totalSGST?.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
 
                       {/* Date */}
