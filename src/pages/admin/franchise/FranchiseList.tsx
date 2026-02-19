@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Store, Search, Loader2, RefreshCw, Ban, Phone, MapPin } from 'lucide-react';
+import { Plus, Store, Search, Loader2, RefreshCw, Ban, Phone, MapPin, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,10 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import { updateFranchise, deleteFranchise } from '@/services/adminService';
 
 interface Franchise {
   _id: string;
@@ -44,6 +47,15 @@ const FranchiseList = () => {
   const [blockModal, setBlockModal] = useState<{ open: boolean; franchise: Franchise | null }>({ open: false, franchise: null });
   const [blockReason, setBlockReason] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
+
+  // Edit modal
+  const [editModal, setEditModal] = useState<{ open: boolean; franchise: Franchise | null }>({ open: false, franchise: null });
+  const [editForm, setEditForm] = useState({ name: '', shopName: '', phone: '', city: '', password: '' });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Delete dialog
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; franchise: Franchise | null }>({ open: false, franchise: null });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchFranchises = useCallback(async (showRefreshSpinner = false) => {
     if (showRefreshSpinner) {
@@ -94,13 +106,9 @@ const FranchiseList = () => {
 
   const handleBlockFranchise = async () => {
     if (!blockModal.franchise) return;
-
     setIsBlocking(true);
     try {
-      await api.patch(`/api/v1/admin/franchise/block/${blockModal.franchise._id}`, {
-        reason: blockReason,
-      });
-
+      await api.patch(`/api/v1/admin/franchise/block/${blockModal.franchise._id}`, { reason: blockReason });
       toast.success('Franchise blocked successfully');
       setBlockModal({ open: false, franchise: null });
       setBlockReason('');
@@ -110,6 +118,56 @@ const FranchiseList = () => {
       toast.error(error.response?.data?.message || 'Failed to block franchise');
     } finally {
       setIsBlocking(false);
+    }
+  };
+
+  const openEditModal = (franchise: Franchise) => {
+    setEditForm({
+      name: franchise.name || '',
+      shopName: franchise.shopName || '',
+      phone: franchise.phone || '',
+      city: franchise.city || '',
+      password: '',
+    });
+    setEditModal({ open: true, franchise });
+  };
+
+  const handleUpdateFranchise = async () => {
+    if (!editModal.franchise) return;
+    setIsUpdating(true);
+    try {
+      const payload: Record<string, string> = {};
+      if (editForm.name) payload.name = editForm.name;
+      if (editForm.shopName) payload.shopName = editForm.shopName;
+      if (editForm.phone) payload.phone = editForm.phone;
+      if (editForm.city) payload.city = editForm.city;
+      if (editForm.password) payload.password = editForm.password;
+
+      await updateFranchise(editModal.franchise._id, payload);
+      toast.success('Franchise updated successfully');
+      setEditModal({ open: false, franchise: null });
+      fetchFranchises(true);
+    } catch (error: any) {
+      console.error('Error updating franchise:', error);
+      toast.error(error.response?.data?.message || 'Failed to update franchise');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteFranchise = async () => {
+    if (!deleteDialog.franchise) return;
+    setIsDeleting(true);
+    try {
+      await deleteFranchise(deleteDialog.franchise._id);
+      toast.success('Franchise deleted successfully');
+      setDeleteDialog({ open: false, franchise: null });
+      fetchFranchises(true);
+    } catch (error: any) {
+      console.error('Error deleting franchise:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete franchise');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -260,17 +318,32 @@ const FranchiseList = () => {
                     </TableCell>
                     <TableCell>{getStatusBadge(franchise)}</TableCell>
                     <TableCell className="text-right">
-                      {!franchise.isBlocked && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => setBlockModal({ open: true, franchise })}
-                        >
-                          <Ban className="h-4 w-4 mr-1" />
-                          Block
-                        </Button>
-                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditModal(franchise)}>
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          {!franchise.isBlocked && (
+                            <DropdownMenuItem onClick={() => setBlockModal({ open: true, franchise })}>
+                              <Ban className="h-4 w-4 mr-2" />
+                              Block
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteDialog({ open: true, franchise })}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -312,6 +385,70 @@ const FranchiseList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Franchise Modal */}
+      <Dialog open={editModal.open} onOpenChange={(open) => { if (!open) setEditModal({ open: false, franchise: null }); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Franchise</DialogTitle>
+            <DialogDescription>
+              Update details for <strong>{editModal.franchise?.shopName}</strong>. Email and Vendor ID cannot be changed.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-shopName">Shop Name</Label>
+              <Input id="edit-shopName" value={editForm.shopName} onChange={(e) => setEditForm(f => ({ ...f, shopName: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Owner Name</Label>
+              <Input id="edit-name" value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Phone</Label>
+              <Input id="edit-phone" value={editForm.phone} onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-city">City</Label>
+              <Input id="edit-city" value={editForm.city} onChange={(e) => setEditForm(f => ({ ...f, city: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">New Password (optional)</Label>
+              <Input id="edit-password" type="password" value={editForm.password} onChange={(e) => setEditForm(f => ({ ...f, password: e.target.value }))} placeholder="Leave blank to keep unchanged" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditModal({ open: false, franchise: null })}>Cancel</Button>
+            <Button onClick={handleUpdateFranchise} disabled={isUpdating}>
+              {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => { if (!open) setDeleteDialog({ open: false, franchise: null }); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Franchise</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{deleteDialog.franchise?.shopName}</strong>? This will soft delete the franchise and prevent their access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFranchise}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

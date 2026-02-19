@@ -98,3 +98,23 @@ export const deleteProduct = async (productId: string) => {
   const response = await api.delete(`/api/v1/admin/product/${productId}`);
   return response.data;
 };
+
+// ===== Franchise Management =====
+
+/**
+ * Update a franchise
+ * API: PUT /api/v1/admin/franchise/{franchiseId}
+ */
+export const updateFranchise = async (franchiseId: string, data: { name?: string; shopName?: string; phone?: string; city?: string; password?: string }) => {
+  const response = await api.put(`/api/v1/admin/franchise/${franchiseId}`, data);
+  return response.data;
+};
+
+/**
+ * Delete (soft delete) a franchise
+ * API: DELETE /api/v1/admin/franchise/{franchiseId}
+ */
+export const deleteFranchise = async (franchiseId: string) => {
+  const response = await api.delete(`/api/v1/admin/franchise/${franchiseId}`);
+  return response.data;
+};
